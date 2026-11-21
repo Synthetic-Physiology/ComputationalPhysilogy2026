@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D-Synapse: PD-1, Anti-PD-1 und mRNA-Neoantigen-Impfung</title>
+<style>
+:root{--bg:#0b0d12;--panel:#151821;--line:#272c38;--txt:#e7e9ee;--mut:#9aa3b2;--acc:#a3e635}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{display:grid;grid-template-columns:360px 1fr;height:100vh}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+h1{font-size:17px;margin:0;font-weight:650;line-height:1.3}
+.sub{color:var(--mut);font-size:12.5px;margin-top:2px}
+.steps{display:flex;flex-direction:column;gap:4px}
+.steps button{text-align:left;background:#1d212c;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;cursor:pointer;font:inherit;font-size:13.5px}
+.steps button.on{border-color:var(--acc);background:#20291a}
+.steps button small{display:block;color:var(--mut);font-size:11.5px}
+.ctrl{display:flex;gap:6px;flex-wrap:wrap}
+.ctrl button{background:#232833;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:6px 10px;cursor:pointer;font:inherit;font-size:13px}
+.ctrl button.primary{background:#3f6212;border-color:#4d7c0f}
+#text{background:#10131a;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13.5px}
+#text h2{font-size:15px;margin:0 0 6px}
+#text p{margin:6px 0}
+#text .key{border-left:3px solid var(--acc);padding-left:8px;color:#d9f99d}
+.meters div{display:grid;grid-template-columns:150px 1fr 40px;align-items:center;gap:8px;font-size:12.5px;margin:4px 0}
+.bar{height:8px;background:#222734;border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:4px}
+.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--mut)}
+.opts{display:flex;gap:14px;font-size:12.5px;color:var(--mut)}
+#stage{position:relative;overflow:hidden;min-height:420px}
+#status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:#e7e9ee;font-size:15px;z-index:5;background:#0b0d12}
+#stage canvas{display:block}
+#labels{position:absolute;inset:0;pointer-events:none}
+.lb{position:absolute;transform:translate(-50%,-100%);font-size:12px;white-space:nowrap;padding:2px 7px;border-radius:5px;background:rgba(11,13,18,.78);border:1px solid rgba(255,255,255,.12);transition:opacity .25s}
+.lb.big{font-size:13px;font-weight:600}
+#legend{position:absolute;right:12px;bottom:12px;background:rgba(11,13,18,.8);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.7}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#hint{position:absolute;left:12px;bottom:12px;color:var(--mut);font-size:12px;background:rgba(11,13,18,.7);padding:4px 8px;border-radius:6px}
+body.film .wrap{grid-template-columns:1fr;grid-template-rows:1fr;height:100vh}
+body.film aside,body.film #legend,body.film #hint{display:none}
+body.film #stage{min-height:100vh}
+#filmCap{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);max-width:78%;text-align:center;font-size:clamp(16px,2.2vw,28px);line-height:1.35;background:rgba(8,10,14,.82);border:1px solid rgba(255,255,255,.12);padding:12px 22px;border-radius:12px;opacity:0;transition:opacity .6s;pointer-events:none;z-index:4}
+#filmStep{position:absolute;left:3%;top:4%;font-size:clamp(13px,1.4vw,18px);color:#d9f99d;background:rgba(8,10,14,.7);padding:6px 12px;border-radius:8px;opacity:0;transition:opacity .6s;pointer-events:none;z-index:4}
+#filmCard{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(8,10,14,.9);z-index:6;transition:opacity 1s;padding:5%}
+#filmCard h1{font-size:clamp(24px,3.6vw,48px);margin:0 0 14px;line-height:1.2}
+#filmCard h2{font-size:clamp(15px,1.8vw,24px);color:#a3e635;font-weight:500;margin:0 0 10px}
+#filmCard p,#filmCard li{font-size:clamp(14px,1.6vw,21px);color:#cbd5e1;margin:6px 0}
+#filmCard ul{text-align:left;display:inline-block;margin:10px 0}
+#filmCard small{color:#94a3b8;font-size:clamp(11px,1vw,14px);margin-top:18px;display:block}
+.filmbox{background:#1a2414;border:1px solid #3f6212;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.filmbox input{background:#0f1218;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:6px 8px;font:inherit;font-size:13px}
+.filmbox button{background:#3f6212;border:1px solid #4d7c0f;color:#fff;border-radius:7px;padding:8px 10px;cursor:pointer;font:inherit;font-weight:600}
+#langbar{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mut)}
+#langbar button{background:#1d212c;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:4px 9px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600}
+#langbar button.on{border-color:var(--acc);background:#20291a;color:#d9f99d}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;grid-template-rows:72vh auto;height:auto}#stage{order:-1;min-height:360px}aside{border-right:0;border-top:1px solid var(--line)}#legend{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<aside>
+  <div id="langbar"><span data-i18n="lang_label">🌐 Sprache</span><button data-l="de">DE</button><button data-l="en">EN</button><button data-l="fr">FR</button><button data-l="es">ES</button></div>
+  <div>
+    <h1 data-i18n="h1">Immunologische Synapse: T-Zelle ↔ Melanomzelle</h1>
+    <div class="sub" data-i18n="sub">PD-1/PD-L1-Checkpoint · Anti-PD-1-Antikörper · personalisierte mRNA-Neoantigen-Impfung</div>
+  </div>
+  <div class="filmbox">
+    <button id="filmBtn" data-i18n="film_btn">🎬 Film-Modus starten (für Bildschirmaufnahme)</button>
+    <input id="filmNames" data-i18n-ph="film_ph" placeholder="Eure Namen für den Abspann (optional)">
+    <div hidden><input type="checkbox" id="voiceOn"><select id="voiceSel"></select><input type="range" id="voiceRate" value="1"><button id="voiceTest"></button><div id="scriptBox"></div></div>
+    <span style="font-size:12px;color:#9aa3b2" data-i18n="film_desc">Vollbild, Kamerafahrt, Untertitel · ca. 65 s · Esc = beenden</span>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="ctrl">
+    <button id="prev" data-i18n="prev">◀ Zurück</button>
+    <button id="replay" data-i18n="replay">↺ Schritt wiederholen</button>
+    <button id="next" class="primary" data-i18n="next">Weiter ▶</button>
+    <button id="auto" data-i18n="auto_play">▶ Alles abspielen</button>
+  </div>
+  <div id="text"></div>
+  <div class="meters" id="meters">
+    <div><span data-i18n="m0">TCR-Aktivierungssignal</span><span class="bar"><i id="m0" style="background:#a3e635"></i></span><span class="num" id="n0"></span></div>
+    <div><span data-i18n="m1">PD-1 durch PD-L1 gebunden</span><span class="bar"><i id="m1" style="background:#ef4444"></i></span><span class="num" id="n1"></span></div>
+    <div><span data-i18n="m2">PD-1 durch Antikörper blockiert</span><span class="bar"><i id="m2" style="background:#e5e7eb"></i></span><span class="num" id="n2"></span></div>
+    <div><span data-i18n="m3">Apoptose der Zielzelle</span><span class="bar"><i id="m3" style="background:#f97316"></i></span><span class="num" id="n3"></span></div>
+  </div>
+  <div class="opts">
+    <label><input type="checkbox" id="optLabels" checked> <span data-i18n="opt_labels">Beschriftungen</span></label>
+    <label><input type="checkbox" id="optLipids" checked> <span data-i18n="opt_lipids">Lipidmembran</span></label>
+    <label><input type="checkbox" id="optRotate"> <span data-i18n="opt_rotate">Auto-Drehen</span></label>
+  </div>
+  <div class="ctrl" id="cams">
+    <button data-c="0" data-i18n="cam0">Kamera: Übersicht</button>
+    <button data-c="1" data-i18n="cam1">Nahansicht PD-1/PD-L1</button>
+    <button data-c="2" data-i18n="cam2">Nahansicht TCR–MHC</button>
+    <button data-c="3" data-i18n="cam3">Zytoplasma (SHP-2)</button>
+  </div>
+</aside>
+<div id="stage">
+  <div id="labels"></div>
+  <div id="filmStep"></div><div id="filmCap"></div><div id="filmCard"></div>
+  <div id="hint" data-i18n="hint">Maus ziehen = drehen · Mausrad = zoomen · Rechtsklick ziehen = verschieben</div>
+  <div id="legend">
+    <div><span class="sw" style="background:#2dd4bf"></span>T-Zell-Rezeptor (TCR) + CD3</div>
+    <div><span class="sw" style="background:#a78bfa"></span>CD8-Korezeptor</div>
+    <div><span class="sw" style="background:#f472b6"></span>MHC-I · <span class="sw" style="background:#fde047"></span>Neoantigen-Peptid</div>
+    <div><span class="sw" style="background:#3b82f6"></span>PD-1 (T-Zelle)</div>
+    <div><span class="sw" style="background:#ef4444"></span>PD-L1 (Tumorzelle)</div>
+    <div><span class="sw" style="background:#e5e7eb"></span>Pembrolizumab (Anti-PD-1-IgG4)</div>
+    <div><span class="sw" style="background:#d946ef"></span>SHP-2 (Phosphatase)</div>
+    <div><span class="sw" style="background:#f97316"></span>Lytische Granula / Perforin / Granzym B</div>
+    <div><span class="sw" style="background:#a3e635"></span>Aktivierungssignal · <span class="sw" style="background:#22d3ee"></span>IFN-γ</div>
+  </div>
+</div>
+</div>
+
+<script>
+// ===================== Sprachen / Languages / Langues / Idiomas =====================
+const I18N={
+de:{title:'3D-Synapse: PD-1, Anti-PD-1 und mRNA-Neoantigen-Impfung',lang_label:'🌐 Sprache',
+ h1:'Immunologische Synapse: T-Zelle ↔ Melanomzelle',sub:'PD-1/PD-L1-Checkpoint · Anti-PD-1-Antikörper · personalisierte mRNA-Neoantigen-Impfung',
+ film_btn:'🎬 Film-Modus starten (für Bildschirmaufnahme)',film_ph:'Eure Namen für den Abspann (optional)',film_desc:'Vollbild, Kamerafahrt, Untertitel · ca. 65 s · Esc = beenden',
+ prev:'◀ Zurück',replay:'↺ Schritt wiederholen',next:'Weiter ▶',auto_play:'▶ Alles abspielen',auto_stop:'❚❚ Stopp',
+ m0:'TCR-Aktivierungssignal',m1:'PD-1 durch PD-L1 gebunden',m2:'PD-1 durch Antikörper blockiert',m3:'Apoptose der Zielzelle',
+ opt_labels:'Beschriftungen',opt_lipids:'Lipidmembran',opt_rotate:'Auto-Drehen',
+ cam0:'Kamera: Übersicht',cam1:'Nahansicht PD-1/PD-L1',cam2:'Nahansicht TCR–MHC',cam3:'Zytoplasma (SHP-2)',
+ hint:'Maus ziehen = drehen · Mausrad = zoomen · Rechtsklick ziehen = verschieben',
+ leg_tcr:'T-Zell-Rezeptor (TCR) + CD3',leg_cd8:'CD8-Korezeptor',leg_mhc:'MHC-I',leg_pep:'Neoantigen-Peptid',leg_pd1:'PD-1 (T-Zelle)',leg_pdl1:'PD-L1 (Tumorzelle)',
+ leg_ab:'Pembrolizumab (Anti-PD-1-IgG4)',leg_shp:'SHP-2 (Phosphatase)',leg_gran:'Lytische Granula / Perforin / Granzym B',leg_sig:'Aktivierungssignal',
+ status_loading:'3D-Modell wird geladen …',status_err:'Fehler beim Starten des 3D-Modells:',
+ status_fail:'Die 3D-Bibliothek (three.js) konnte nicht geladen werden.<br>Bitte prüft die Internetverbindung oder öffnet das Modell in einem anderen Browser (Chrome/Firefox/Edge).',
+ lb_tcell:'CD8⁺-T-Zelle (Zytoplasma)',lb_dc:'Dendritische Zelle (Lymphknoten)',lb_mel:'Melanomzelle',lb_mel_apo:'Melanomzelle – Apoptose',lb_cleft:'Synaptischer Spalt ≈ 14 nm',
+ lb_tcr:'TCR',lb_itams:'CD3ζ-ITAMs',lb_cd8:'CD8',lb_mhc:'MHC-I + Neoantigen',lb_pd1:'PD-1',lb_itsm:'ITSM (Y248)',lb_pdl1:'PD-L1',lb_ab:'Pembrolizumab',lb_shp:'SHP-2',
+ lb_gran:'Lytische Granula',lb_pores:'Perforin-Poren',lb_lnp:'LNP mit mRNA',lb_mrna:'mRNA + Ribosomen',lb_melano:'Melanosomen',lb_ifng:'IFN-γ',
+ fs:['Impfung','Erkennung','Hemmung durch PD-1','Anti-PD-1-Therapie','Effektorfunktion'],
+ card_ready:'<h2>Film-Modus</h2><p>1. Bildschirmaufnahme starten<br>2. Hier klicken oder Leertaste drücken</p><small>Esc beendet den Film-Modus</small>',
+ card_title:'<h2>Wahlfach Computational Physiology</h2><h1>Personalisierte mRNA-Impfung<br>und PD-1-Blockade beim Melanom</h1><p>Was an der immunologischen Synapse passiert</p>',
+ end_title:'Fazit',end_items:['<b>mRNA-Impfung:</b> mehr tumorspezifische T-Zellen (Neoantigene)','<b>Anti-PD-1:</b> verhindert die Hemmung über PD-1/PD-L1','<b>Kombination:</b> Erkennung + Funktion → Abtötung der Melanomzelle'],
+ end_note:'Klinischer Bezug: Phase-3-Studie INTerpath-001 (intismeran autogene + Pembrolizumab, reseziertes Melanom Stadium IIB–IV)<br>Schematisches Modell, nicht maßstabsgetreu in der Zeit.'},
+en:{title:'3D synapse: PD-1, anti-PD-1 and mRNA neoantigen vaccine',lang_label:'🌐 Language',
+ h1:'Immunological synapse: T cell ↔ melanoma cell',sub:'PD-1/PD-L1 checkpoint · anti-PD-1 antibody · personalised mRNA neoantigen vaccine',
+ film_btn:'🎬 Start film mode (for screen recording)',film_ph:'Your names for the credits (optional)',film_desc:'Full screen, camera tour, subtitles · approx. 65 s · Esc = exit',
+ prev:'◀ Back',replay:'↺ Replay step',next:'Next ▶',auto_play:'▶ Play all',auto_stop:'❚❚ Stop',
+ m0:'TCR activation signal',m1:'PD-1 bound by PD-L1',m2:'PD-1 blocked by antibody',m3:'Target cell apoptosis',
+ opt_labels:'Labels',opt_lipids:'Lipid membrane',opt_rotate:'Auto-rotate',
+ cam0:'Camera: overview',cam1:'Close-up PD-1/PD-L1',cam2:'Close-up TCR–MHC',cam3:'Cytoplasm (SHP-2)',
+ hint:'Drag = rotate · Scroll = zoom · Right-drag = pan',
+ leg_tcr:'T-cell receptor (TCR) + CD3',leg_cd8:'CD8 co-receptor',leg_mhc:'MHC-I',leg_pep:'Neoantigen peptide',leg_pd1:'PD-1 (T cell)',leg_pdl1:'PD-L1 (tumour cell)',
+ leg_ab:'Pembrolizumab (anti-PD-1 IgG4)',leg_shp:'SHP-2 (phosphatase)',leg_gran:'Lytic granules / perforin / granzyme B',leg_sig:'Activation signal',
+ status_loading:'Loading 3D model …',status_err:'Error starting the 3D model:',
+ status_fail:'The 3D library (three.js) could not be loaded.<br>Please check your internet connection or open the model in another browser (Chrome/Firefox/Edge).',
+ lb_tcell:'CD8⁺ T cell (cytoplasm)',lb_dc:'Dendritic cell (lymph node)',lb_mel:'Melanoma cell',lb_mel_apo:'Melanoma cell – apoptosis',lb_cleft:'Synaptic cleft ≈ 14 nm',
+ lb_itams:'CD3ζ ITAMs',lb_mhc:'MHC-I + neoantigen',lb_gran:'Lytic granules',lb_pores:'Perforin pores',lb_lnp:'LNP with mRNA',lb_mrna:'mRNA + ribosomes',lb_melano:'Melanosomes',
+ fs:['Vaccination','Recognition','Inhibition by PD-1','Anti-PD-1 therapy','Effector function'],
+ card_ready:'<h2>Film mode</h2><p>1. Start your screen recording<br>2. Click here or press the space bar</p><small>Esc exits film mode</small>',
+ card_title:'<h2>Elective: Computational Physiology</h2><h1>Personalised mRNA vaccination<br>and PD-1 blockade in melanoma</h1><p>What happens at the immunological synapse</p>',
+ end_title:'Summary',end_items:['<b>mRNA vaccine:</b> more tumour-specific T cells (neoantigens)','<b>Anti-PD-1:</b> prevents inhibition via PD-1/PD-L1','<b>Combination:</b> recognition + function → killing of the melanoma cell'],
+ end_note:'Clinical context: phase 3 trial INTerpath-001 (intismeran autogene + pembrolizumab, resected melanoma stage IIB–IV)<br>Schematic model; timing not to scale.'},
+fr:{title:'Synapse 3D : PD-1, anti-PD-1 et vaccin à ARNm néoantigénique',lang_label:'🌐 Langue',
+ h1:'Synapse immunologique : lymphocyte T ↔ cellule de mélanome',sub:'Point de contrôle PD-1/PD-L1 · anticorps anti-PD-1 · vaccin personnalisé à ARNm néoantigénique',
+ film_btn:'🎬 Lancer le mode film (enregistrement d\'écran)',film_ph:'Vos noms pour le générique (facultatif)',film_desc:'Plein écran, mouvement de caméra, sous-titres · env. 65 s · Échap = quitter',
+ prev:'◀ Retour',replay:'↺ Rejouer l\'étape',next:'Suivant ▶',auto_play:'▶ Tout lire',auto_stop:'❚❚ Arrêt',
+ m0:'Signal d\'activation du TCR',m1:'PD-1 lié par PD-L1',m2:'PD-1 bloqué par l\'anticorps',m3:'Apoptose de la cellule cible',
+ opt_labels:'Étiquettes',opt_lipids:'Membrane lipidique',opt_rotate:'Rotation auto',
+ cam0:'Caméra : vue d\'ensemble',cam1:'Gros plan PD-1/PD-L1',cam2:'Gros plan TCR–CMH',cam3:'Cytoplasme (SHP-2)',
+ hint:'Glisser = tourner · Molette = zoom · Clic droit + glisser = déplacer',
+ leg_tcr:'Récepteur des lymphocytes T (TCR) + CD3',leg_cd8:'Corécepteur CD8',leg_mhc:'CMH-I',leg_pep:'Peptide néoantigénique',leg_pd1:'PD-1 (lymphocyte T)',leg_pdl1:'PD-L1 (cellule tumorale)',
+ leg_ab:'Pembrolizumab (IgG4 anti-PD-1)',leg_shp:'SHP-2 (phosphatase)',leg_gran:'Granules lytiques / perforine / granzyme B',leg_sig:'Signal d\'activation',
+ status_loading:'Chargement du modèle 3D …',status_err:'Erreur au démarrage du modèle 3D :',
+ status_fail:'La bibliothèque 3D (three.js) n\'a pas pu être chargée.<br>Vérifiez la connexion Internet ou ouvrez le modèle dans un autre navigateur (Chrome/Firefox/Edge).',
+ lb_tcell:'Lymphocyte T CD8⁺ (cytoplasme)',lb_dc:'Cellule dendritique (ganglion lymphatique)',lb_mel:'Cellule de mélanome',lb_mel_apo:'Cellule de mélanome – apoptose',lb_cleft:'Fente synaptique ≈ 14 nm',
+ lb_itams:'ITAM de CD3ζ',lb_mhc:'CMH-I + néoantigène',lb_gran:'Granules lytiques',lb_pores:'Pores de perforine',lb_lnp:'LNP avec ARNm',lb_mrna:'ARNm + ribosomes',lb_melano:'Mélanosomes',
+ fs:['Vaccination','Reconnaissance','Inhibition par PD-1','Traitement anti-PD-1','Fonction effectrice'],
+ card_ready:'<h2>Mode film</h2><p>1. Lancez l\'enregistrement d\'écran<br>2. Cliquez ici ou appuyez sur la barre d\'espace</p><small>Échap quitte le mode film</small>',
+ card_title:'<h2>Option : Computational Physiology</h2><h1>Vaccin personnalisé à ARNm<br>et blocage de PD-1 dans le mélanome</h1><p>Ce qui se passe à la synapse immunologique</p>',
+ end_title:'Conclusion',end_items:['<b>Vaccin à ARNm :</b> plus de lymphocytes T spécifiques de la tumeur (néoantigènes)','<b>Anti-PD-1 :</b> empêche l\'inhibition par PD-1/PD-L1','<b>Association :</b> reconnaissance + fonction → destruction de la cellule de mélanome'],
+ end_note:'Contexte clinique : essai de phase 3 INTerpath-001 (intismeran autogene + pembrolizumab, mélanome réséqué de stade IIB–IV)<br>Modèle schématique ; échelle de temps non respectée.'},
+es:{title:'Sinapsis 3D: PD-1, anti-PD-1 y vacuna de ARNm de neoantígenos',lang_label:'🌐 Idioma',
+ h1:'Sinapsis inmunológica: linfocito T ↔ célula de melanoma',sub:'Punto de control PD-1/PD-L1 · anticuerpo anti-PD-1 · vacuna personalizada de ARNm de neoantígenos',
+ film_btn:'🎬 Iniciar modo película (para grabar la pantalla)',film_ph:'Vuestros nombres para los créditos (opcional)',film_desc:'Pantalla completa, recorrido de cámara, subtítulos · aprox. 65 s · Esc = salir',
+ prev:'◀ Atrás',replay:'↺ Repetir paso',next:'Siguiente ▶',auto_play:'▶ Reproducir todo',auto_stop:'❚❚ Parar',
+ m0:'Señal de activación del TCR',m1:'PD-1 unido a PD-L1',m2:'PD-1 bloqueado por el anticuerpo',m3:'Apoptosis de la célula diana',
+ opt_labels:'Etiquetas',opt_lipids:'Membrana lipídica',opt_rotate:'Giro automático',
+ cam0:'Cámara: vista general',cam1:'Primer plano PD-1/PD-L1',cam2:'Primer plano TCR–CMH',cam3:'Citoplasma (SHP-2)',
+ hint:'Arrastrar = girar · Rueda = zoom · Clic derecho + arrastrar = mover',
+ leg_tcr:'Receptor de linfocitos T (TCR) + CD3',leg_cd8:'Correceptor CD8',leg_mhc:'CMH-I',leg_pep:'Péptido neoantigénico',leg_pd1:'PD-1 (linfocito T)',leg_pdl1:'PD-L1 (célula tumoral)',
+ leg_ab:'Pembrolizumab (IgG4 anti-PD-1)',leg_shp:'SHP-2 (fosfatasa)',leg_gran:'Gránulos líticos / perforina / granzima B',leg_sig:'Señal de activación',
+ status_loading:'Cargando el modelo 3D …',status_err:'Error al iniciar el modelo 3D:',
+ status_fail:'No se pudo cargar la biblioteca 3D (three.js).<br>Comprobad la conexión a Internet o abrid el modelo en otro navegador (Chrome/Firefox/Edge).',
+ lb_tcell:'Linfocito T CD8⁺ (citoplasma)',lb_dc:'Célula dendrítica (ganglio linfático)',lb_mel:'Célula de melanoma',lb_mel_apo:'Célula de melanoma – apoptosis',lb_cleft:'Hendidura sináptica ≈ 14 nm',
+ lb_itams:'ITAM de CD3ζ',lb_mhc:'CMH-I + neoantígeno',lb_gran:'Gránulos líticos',lb_pores:'Poros de perforina',lb_lnp:'LNP con ARNm',lb_mrna:'ARNm + ribosomas',lb_melano:'Melanosomas',
+ fs:['Vacunación','Reconocimiento','Inhibición por PD-1','Tratamiento anti-PD-1','Función efectora'],
+ card_ready:'<h2>Modo película</h2><p>1. Inicia la grabación de pantalla<br>2. Haz clic aquí o pulsa la barra espaciadora</p><small>Esc sale del modo película</small>',
+ card_title:'<h2>Asignatura optativa: Computational Physiology</h2><h1>Vacuna personalizada de ARNm<br>y bloqueo de PD-1 en el melanoma</h1><p>Qué ocurre en la sinapsis inmunológica</p>',
+ end_title:'Conclusión',end_items:['<b>Vacuna de ARNm:</b> más linfocitos T específicos contra el tumor (neoantígenos)','<b>Anti-PD-1:</b> impide la inhibición por PD-1/PD-L1','<b>Combinación:</b> reconocimiento + función → destrucción de la célula de melanoma'],
+ end_note:'Contexto clínico: ensayo de fase 3 INTerpath-001 (intismeran autogene + pembrolizumab, melanoma resecado en estadio IIB–IV)<br>Modelo esquemático; escala temporal no real.'},
+};
+const DUR=[11,6,9,8,11];
+const STEPS_L={
+de:[
+ {title:'0 · mRNA-Impfung (Lymphknoten)',short:'Neoantigen-Präsentation & T-Zell-Priming',
+  html:`<h2>Schritt 0 – Was die mRNA-Impfung macht</h2><p>Ein <b>Lipid-Nanopartikel (LNP)</b> bringt die mRNA in eine <b>dendritische Zelle</b>. Die mRNA kodiert bis zu 34 <b>Neoantigene</b>, also Peptide aus den Mutationen genau dieses Patienten-Tumors.</p><p>Ribosomen translatieren die mRNA. Das Protein wird im Proteasom zerlegt, die Peptide werden im ER auf <b>MHC-I</b> geladen und an der Zelloberfläche präsentiert.</p><p>Eine naive CD8⁺-T-Zelle mit passendem <b>TCR</b> erkennt das Peptid (Signal 1, dazu Kostimulation CD28–CD80/86 als Signal 2). Sie wird aktiviert und vermehrt sich klonal.</p><p class="key">Die Impfung blockiert <u>nicht</u> PD-1. Sie erhöht die <b>Zahl und Spezifität</b> der tumorreaktiven T-Zellen.</p>`},
+ {title:'1 · Erkennung der Melanomzelle',short:'TCR bindet Neoantigen auf MHC-I',
+  html:`<h2>Schritt 1 – Die T-Zelle findet den Tumor</h2><p>Die aktivierte T-Zelle wandert in den Tumor ein. Die Melanomzelle präsentiert <b>dasselbe Neoantigen</b> auf MHC-I. Der TCR bindet daran, CD8 bindet an die α3-Domäne von MHC-I.</p><p>LCK phosphoryliert die <b>ITAMs von CD3ζ</b>. Es folgt die Kaskade ZAP-70 → LAT → Ca²⁺/NFAT, Ras/MAPK und NF-κB. Das grüne Signal läuft ins Zellinnere.</p><p>Aktivierte T-Zellen bilden dabei selbst <b>PD-1</b> und schütten <b>IFN-γ</b> aus.</p>`},
+ {title:'2 · Hemmung durch PD-1/PD-L1',short:'Ohne Therapie: Checkpoint bremst',
+  html:`<h2>Schritt 2 – Der Checkpoint bremst</h2><p>IFN-γ induziert auf der Melanomzelle <b>PD-L1</b> (adaptive Immunresistenz). PD-L1 bindet an <b>PD-1</b>, und zwar IgV-Domäne an IgV-Domäne.</p><p>Beide Bindungen überbrücken einen ähnlich breiten Spalt (~14 nm) wie TCR–pMHC. Deshalb liegen PD-1 und TCR in derselben Synapsenzone.</p><p>Das <b>ITSM-Motiv</b> (Tyr248) im zytoplasmatischen PD-1-Schwanz wird phosphoryliert und rekrutiert die Phosphatase <b>SHP-2</b>. SHP-2 dephosphoryliert <b>CD28</b> und TCR-Signalmoleküle (CD3ζ, ZAP-70).</p><p class="key">Das Signal bricht ab. Die T-Zelle erkennt den Tumor, tötet ihn aber nicht. Bei Dauerreiz wird sie erschöpft (Exhaustion: TOX, TIM-3, LAG-3).</p>`},
+ {title:'3 · Anti-PD-1-Antikörper',short:'Pembrolizumab blockiert PD-1',
+  html:`<h2>Schritt 3 – Checkpoint-Blockade</h2><p><b>Pembrolizumab</b> ist ein humanisierter <b>IgG4</b>-Antikörper. Er bindet die IgV-Domäne von PD-1, vor allem an der C'D-Schleife. Seine Bindestelle überlappt mit der von PD-L1.</p><p>Dadurch wird PD-L1 <b>kompetitiv bzw. sterisch verdrängt</b>. Das ITSM wird nicht mehr phosphoryliert, SHP-2 löst sich, und das TCR-Signal kehrt zurück.</p><p class="key">Der Antikörper „löst die Bremse“. Wirken kann er aber nur, wenn tumorspezifische T-Zellen vorhanden sind (→ Impfung).</p>`},
+ {title:'4 · Effektorfunktion',short:'Perforin & Granzym → Apoptose',
+  html:`<h2>Schritt 4 – Die T-Zelle tötet</h2><p>Das MTOC polarisiert zur Synapse. <b>Lytische Granula</b> wandern zur Kontaktfläche und verschmelzen mit der Membran.</p><p><b>Perforin</b> bildet Poren in der Membran der Melanomzelle. Durch sie gelangt <b>Granzym B</b> in die Zelle, aktiviert Caspasen (u. a. Caspase-3) und löst die <b>Apoptose</b> aus (Membran-Blebbing).</p><p>Zusätzlich wirken IFN-γ und TNF-α. Eine T-Zelle kann mehrere Tumorzellen nacheinander töten (serielles Töten).</p><p class="key">Synergie: Die Impfung liefert die richtigen T-Zellen (Anzahl/Spezifität), Anti-PD-1 erhält ihre Funktion. Beides zusammen ergibt die volle Effektorfunktion.</p>`}],
+en:[
+ {title:'0 · mRNA vaccination (lymph node)',short:'Neoantigen presentation & T-cell priming',
+  html:`<h2>Step 0 – What the mRNA vaccine does</h2><p>A <b>lipid nanoparticle (LNP)</b> delivers the mRNA into a <b>dendritic cell</b>. The mRNA encodes up to 34 <b>neoantigens</b> – peptides from mutations found only in this patient's tumour.</p><p>Ribosomes translate the mRNA. The proteasome degrades the protein, and the peptides are loaded onto <b>MHC class I</b> in the ER and presented on the cell surface.</p><p>A naive CD8⁺ T cell with a matching <b>TCR</b> recognises the peptide (signal 1, plus co-stimulation CD28–CD80/86 as signal 2). It is activated and expands clonally.</p><p class="key">The vaccine does <u>not</u> block PD-1. It increases the <b>number and specificity</b> of tumour-reactive T cells.</p>`},
+ {title:'1 · Recognition of the melanoma cell',short:'TCR binds neoantigen on MHC-I',
+  html:`<h2>Step 1 – The T cell finds the tumour</h2><p>The activated T cell migrates into the tumour. The melanoma cell presents <b>the same neoantigen</b> on MHC-I. The TCR binds it, and CD8 binds the α3 domain of MHC-I.</p><p>LCK phosphorylates the <b>ITAMs of CD3ζ</b>, followed by the cascade ZAP-70 → LAT → Ca²⁺/NFAT, Ras/MAPK and NF-κB. The green signal travels into the cell.</p><p>Activated T cells express <b>PD-1</b> themselves and release <b>IFN-γ</b>.</p>`},
+ {title:'2 · Inhibition by PD-1/PD-L1',short:'Without therapy: the checkpoint brakes',
+  html:`<h2>Step 2 – The checkpoint applies the brake</h2><p>IFN-γ induces <b>PD-L1</b> on the melanoma cell (adaptive immune resistance). PD-L1 binds <b>PD-1</b>, IgV domain to IgV domain.</p><p>Both interactions span a gap of similar width (~14 nm) as TCR–pMHC, so PD-1 and the TCR sit in the same zone of the synapse.</p><p>The <b>ITSM motif</b> (Tyr248) in the cytoplasmic tail of PD-1 is phosphorylated and recruits the phosphatase <b>SHP-2</b>. SHP-2 dephosphorylates <b>CD28</b> and TCR signalling molecules (CD3ζ, ZAP-70).</p><p class="key">The signal collapses. The T cell recognises the tumour but does not kill it. Under chronic stimulation it becomes exhausted (TOX, TIM-3, LAG-3).</p>`},
+ {title:'3 · Anti-PD-1 antibody',short:'Pembrolizumab blocks PD-1',
+  html:`<h2>Step 3 – Checkpoint blockade</h2><p><b>Pembrolizumab</b> is a humanised <b>IgG4</b> antibody. It binds the IgV domain of PD-1, mainly at the C'D loop. Its binding site overlaps with that of PD-L1.</p><p>PD-L1 is therefore <b>displaced competitively/sterically</b>. The ITSM is no longer phosphorylated, SHP-2 detaches, and the TCR signal returns.</p><p class="key">The antibody “releases the brake”. But it can only work if tumour-specific T cells are present (→ vaccine).</p>`},
+ {title:'4 · Effector function',short:'Perforin & granzyme → apoptosis',
+  html:`<h2>Step 4 – The T cell kills</h2><p>The MTOC polarises towards the synapse. <b>Lytic granules</b> move to the contact zone and fuse with the membrane.</p><p><b>Perforin</b> forms pores in the membrane of the melanoma cell. Through them, <b>granzyme B</b> enters the cell, activates caspases (e.g. caspase-3) and triggers <b>apoptosis</b> (membrane blebbing).</p><p>IFN-γ and TNF-α add to the effect. One T cell can kill several tumour cells in turn (serial killing).</p><p class="key">Synergy: the vaccine supplies the right T cells (number/specificity), anti-PD-1 preserves their function. Together they give full effector function.</p>`}],
+fr:[
+ {title:'0 · Vaccin à ARNm (ganglion lymphatique)',short:'Présentation des néoantigènes et activation des lymphocytes T',
+  html:`<h2>Étape 0 – Ce que fait le vaccin à ARNm</h2><p>Une <b>nanoparticule lipidique (LNP)</b> fait entrer l'ARNm dans une <b>cellule dendritique</b>. L'ARNm code jusqu'à 34 <b>néoantigènes</b>, des peptides issus de mutations propres à la tumeur de ce patient.</p><p>Les ribosomes traduisent l'ARNm. Le protéasome dégrade la protéine et les peptides sont chargés sur le <b>CMH de classe I</b> dans le RE, puis présentés à la surface.</p><p>Un lymphocyte T CD8⁺ naïf portant un <b>TCR</b> adapté reconnaît le peptide (signal 1, plus la co-stimulation CD28–CD80/86 comme signal 2). Il est activé et prolifère de façon clonale.</p><p class="key">Le vaccin ne bloque <u>pas</u> PD-1. Il augmente le <b>nombre et la spécificité</b> des lymphocytes T dirigés contre la tumeur.</p>`},
+ {title:'1 · Reconnaissance de la cellule de mélanome',short:'Le TCR se lie au néoantigène sur le CMH-I',
+  html:`<h2>Étape 1 – Le lymphocyte T trouve la tumeur</h2><p>Le lymphocyte T activé migre dans la tumeur. La cellule de mélanome présente <b>le même néoantigène</b> sur le CMH-I. Le TCR s'y lie et CD8 se fixe au domaine α3 du CMH-I.</p><p>LCK phosphoryle les <b>ITAM de CD3ζ</b>, puis suit la cascade ZAP-70 → LAT → Ca²⁺/NFAT, Ras/MAPK et NF-κB. Le signal vert se propage dans la cellule.</p><p>Les lymphocytes T activés expriment eux-mêmes <b>PD-1</b> et libèrent de l'<b>IFN-γ</b>.</p>`},
+ {title:'2 · Inhibition par PD-1/PD-L1',short:'Sans traitement : le point de contrôle freine',
+  html:`<h2>Étape 2 – Le point de contrôle freine</h2><p>L'IFN-γ induit <b>PD-L1</b> sur la cellule de mélanome (résistance immunitaire adaptative). PD-L1 se lie à <b>PD-1</b>, domaine IgV contre domaine IgV.</p><p>Les deux interactions franchissent un espace d'environ 14 nm, comme TCR–CMH-peptide : PD-1 et le TCR se trouvent donc dans la même zone de la synapse.</p><p>Le <b>motif ITSM</b> (Tyr248) de la queue cytoplasmique de PD-1 est phosphorylé et recrute la phosphatase <b>SHP-2</b>. SHP-2 déphosphoryle <b>CD28</b> et les molécules de signalisation du TCR (CD3ζ, ZAP-70).</p><p class="key">Le signal s'effondre. Le lymphocyte T reconnaît la tumeur mais ne la tue pas. Sous stimulation chronique, il s'épuise (TOX, TIM-3, LAG-3).</p>`},
+ {title:'3 · Anticorps anti-PD-1',short:'Le pembrolizumab bloque PD-1',
+  html:`<h2>Étape 3 – Blocage du point de contrôle</h2><p>Le <b>pembrolizumab</b> est un anticorps <b>IgG4</b> humanisé. Il se lie au domaine IgV de PD-1, surtout au niveau de la boucle C'D. Son site de liaison chevauche celui de PD-L1.</p><p>PD-L1 est donc <b>déplacé par compétition (encombrement stérique)</b>. L'ITSM n'est plus phosphorylé, SHP-2 se détache et le signal du TCR revient.</p><p class="key">L'anticorps « desserre le frein ». Mais il n'agit que si des lymphocytes T spécifiques de la tumeur sont présents (→ vaccin).</p>`},
+ {title:'4 · Fonction effectrice',short:'Perforine et granzyme → apoptose',
+  html:`<h2>Étape 4 – Le lymphocyte T tue</h2><p>Le MTOC se polarise vers la synapse. Les <b>granules lytiques</b> migrent vers la zone de contact et fusionnent avec la membrane.</p><p>La <b>perforine</b> forme des pores dans la membrane de la cellule de mélanome. Le <b>granzyme B</b> y pénètre, active les caspases (dont la caspase-3) et déclenche l'<b>apoptose</b> (bourgeonnement de la membrane).</p><p>L'IFN-γ et le TNF-α renforcent l'effet. Un lymphocyte T peut tuer plusieurs cellules tumorales l'une après l'autre (cytotoxicité séquentielle).</p><p class="key">Synergie : le vaccin fournit les bons lymphocytes T (nombre/spécificité), l'anti-PD-1 préserve leur fonction. Ensemble, ils permettent une fonction effectrice complète.</p>`}],
+es:[
+ {title:'0 · Vacuna de ARNm (ganglio linfático)',short:'Presentación de neoantígenos y activación de linfocitos T',
+  html:`<h2>Paso 0 – Qué hace la vacuna de ARNm</h2><p>Una <b>nanopartícula lipídica (LNP)</b> introduce el ARNm en una <b>célula dendrítica</b>. El ARNm codifica hasta 34 <b>neoantígenos</b>: péptidos de mutaciones exclusivas del tumor de este paciente.</p><p>Los ribosomas traducen el ARNm. El proteasoma degrada la proteína y los péptidos se cargan en el <b>CMH de clase I</b> en el RE y se presentan en la superficie celular.</p><p>Un linfocito T CD8⁺ virgen con un <b>TCR</b> compatible reconoce el péptido (señal 1, más la coestimulación CD28–CD80/86 como señal 2). Se activa y prolifera de forma clonal.</p><p class="key">La vacuna <u>no</u> bloquea PD-1. Aumenta el <b>número y la especificidad</b> de los linfocitos T dirigidos contra el tumor.</p>`},
+ {title:'1 · Reconocimiento de la célula de melanoma',short:'El TCR se une al neoantígeno en el CMH-I',
+  html:`<h2>Paso 1 – El linfocito T encuentra el tumor</h2><p>El linfocito T activado migra al tumor. La célula de melanoma presenta <b>el mismo neoantígeno</b> en el CMH-I. El TCR se une a él y CD8 se une al dominio α3 del CMH-I.</p><p>LCK fosforila los <b>ITAM de CD3ζ</b>; sigue la cascada ZAP-70 → LAT → Ca²⁺/NFAT, Ras/MAPK y NF-κB. La señal verde avanza hacia el interior de la célula.</p><p>Los linfocitos T activados expresan <b>PD-1</b> y liberan <b>IFN-γ</b>.</p>`},
+ {title:'2 · Inhibición por PD-1/PD-L1',short:'Sin tratamiento: el punto de control frena',
+  html:`<h2>Paso 2 – El punto de control frena</h2><p>El IFN-γ induce <b>PD-L1</b> en la célula de melanoma (resistencia inmunitaria adaptativa). PD-L1 se une a <b>PD-1</b>, dominio IgV con dominio IgV.</p><p>Ambas interacciones abarcan un espacio de unos 14 nm, como TCR–pMHC; por eso PD-1 y el TCR se sitúan en la misma zona de la sinapsis.</p><p>El <b>motivo ITSM</b> (Tyr248) de la cola citoplasmática de PD-1 se fosforila y recluta la fosfatasa <b>SHP-2</b>. SHP-2 desfosforila <b>CD28</b> y moléculas de señalización del TCR (CD3ζ, ZAP-70).</p><p class="key">La señal se interrumpe. El linfocito T reconoce el tumor, pero no lo destruye. Con estimulación crónica se agota (TOX, TIM-3, LAG-3).</p>`},
+ {title:'3 · Anticuerpo anti-PD-1',short:'El pembrolizumab bloquea PD-1',
+  html:`<h2>Paso 3 – Bloqueo del punto de control</h2><p>El <b>pembrolizumab</b> es un anticuerpo <b>IgG4</b> humanizado. Se une al dominio IgV de PD-1, sobre todo en el bucle C'D. Su sitio de unión se superpone con el de PD-L1.</p><p>Así, PD-L1 queda <b>desplazado por competencia (impedimento estérico)</b>. El ITSM deja de fosforilarse, SHP-2 se separa y la señal del TCR vuelve.</p><p class="key">El anticuerpo «suelta el freno». Pero solo funciona si hay linfocitos T específicos contra el tumor (→ vacuna).</p>`},
+ {title:'4 · Función efectora',short:'Perforina y granzima → apoptosis',
+  html:`<h2>Paso 4 – El linfocito T destruye</h2><p>El MTOC se polariza hacia la sinapsis. Los <b>gránulos líticos</b> se desplazan a la zona de contacto y se fusionan con la membrana.</p><p>La <b>perforina</b> forma poros en la membrana de la célula de melanoma. A través de ellos entra la <b>granzima B</b>, activa caspasas (p. ej., caspasa-3) y desencadena la <b>apoptosis</b> (formación de vesículas en la membrana).</p><p>El IFN-γ y el TNF-α refuerzan el efecto. Un linfocito T puede eliminar varias células tumorales sucesivamente (citotoxicidad en serie).</p><p class="key">Sinergia: la vacuna aporta los linfocitos T adecuados (número/especificidad) y el anti-PD-1 preserva su función. Juntos logran la función efectora completa.</p>`}],
+};
+Object.values(STEPS_L).forEach(a=>a.forEach((s,i)=>s.dur=DUR[i]));
+const CAP_T=[[0,3.2,5,8],[0,2.2,5.5],[0,3,5.6],[0,3,5.6],[0,3.3,6,10]];
+const CAP_TXT={
+de:[['Ein Lipid-Nanopartikel bringt die personalisierte mRNA in eine dendritische Zelle im Lymphknoten.','Ribosomen übersetzen die mRNA in die patienteneigenen Neoantigene.','Die Neoantigen-Peptide werden auf MHC-I geladen und an der Zelloberfläche präsentiert.','Eine CD8⁺-T-Zelle mit passendem T-Zell-Rezeptor erkennt das Neoantigen – sie wird aktiviert und vermehrt sich.'],
+ ['Die aktivierte T-Zelle trifft im Tumor auf eine Melanomzelle mit demselben Neoantigen.','Der T-Zell-Rezeptor bindet – das Aktivierungssignal (grün) läuft in die T-Zelle.','Die T-Zelle schüttet IFN-γ aus und bildet selbst PD-1.'],
+ ['IFN-γ lässt die Melanomzelle PD-L1 bilden. PD-L1 bindet an PD-1 auf der T-Zelle.','Der PD-1-Schwanz (ITSM) wird phosphoryliert und rekrutiert die Phosphatase SHP-2.','SHP-2 schaltet das TCR-Signal ab: Die T-Zelle erkennt den Tumor – aber sie tötet nicht.'],
+ ['Therapie: Der Anti-PD-1-Antikörper Pembrolizumab bindet an PD-1.','PD-L1 wird von der Bindestelle verdrängt – SHP-2 löst sich.','Das Aktivierungssignal kehrt zurück: Die Bremse ist gelöst.'],
+ ['Lytische Granula wandern zur Kontaktstelle der Synapse.','Perforin bildet Poren, Granzym B dringt in die Melanomzelle ein.','Caspasen werden aktiviert – die Melanomzelle stirbt durch Apoptose.','Die Impfung liefert die richtigen T-Zellen, Anti-PD-1 hält sie funktionsfähig.']],
+en:[['A lipid nanoparticle delivers the personalised mRNA into a dendritic cell in the lymph node.','Ribosomes translate the mRNA into the patient\'s own neoantigens.','The neoantigen peptides are loaded onto MHC-I and presented on the cell surface.','A CD8⁺ T cell with a matching T-cell receptor recognises the neoantigen – it is activated and multiplies.'],
+ ['In the tumour, the activated T cell meets a melanoma cell carrying the same neoantigen.','The T-cell receptor binds – the activation signal (green) travels into the T cell.','The T cell releases IFN-γ and expresses PD-1 itself.'],
+ ['IFN-γ makes the melanoma cell express PD-L1. PD-L1 binds PD-1 on the T cell.','The PD-1 tail (ITSM) is phosphorylated and recruits the phosphatase SHP-2.','SHP-2 shuts down the TCR signal: the T cell recognises the tumour – but does not kill.'],
+ ['Therapy: the anti-PD-1 antibody pembrolizumab binds PD-1.','PD-L1 is displaced from the binding site – SHP-2 detaches.','The activation signal returns: the brake is released.'],
+ ['Lytic granules move to the contact zone of the synapse.','Perforin forms pores; granzyme B enters the melanoma cell.','Caspases are activated – the melanoma cell dies by apoptosis.','The vaccine supplies the right T cells; anti-PD-1 keeps them functional.']],
+fr:[['Une nanoparticule lipidique fait entrer l\'ARNm personnalisé dans une cellule dendritique du ganglion lymphatique.','Les ribosomes traduisent l\'ARNm en néoantigènes propres au patient.','Les peptides néoantigéniques sont chargés sur le CMH-I et présentés à la surface de la cellule.','Un lymphocyte T CD8⁺ au récepteur adapté reconnaît le néoantigène : il est activé et se multiplie.'],
+ ['Dans la tumeur, le lymphocyte T activé rencontre une cellule de mélanome portant le même néoantigène.','Le récepteur des lymphocytes T se lie – le signal d\'activation (vert) se propage dans la cellule.','Le lymphocyte T libère de l\'IFN-γ et exprime lui-même PD-1.'],
+ ['L\'IFN-γ pousse la cellule de mélanome à produire PD-L1. PD-L1 se lie à PD-1 sur le lymphocyte T.','La queue de PD-1 (ITSM) est phosphorylée et recrute la phosphatase SHP-2.','SHP-2 coupe le signal du TCR : le lymphocyte T reconnaît la tumeur – mais ne la tue pas.'],
+ ['Traitement : l\'anticorps anti-PD-1 pembrolizumab se lie à PD-1.','PD-L1 est chassé du site de liaison – SHP-2 se détache.','Le signal d\'activation revient : le frein est desserré.'],
+ ['Les granules lytiques migrent vers la zone de contact de la synapse.','La perforine forme des pores, le granzyme B pénètre dans la cellule de mélanome.','Les caspases sont activées – la cellule de mélanome meurt par apoptose.','Le vaccin fournit les bons lymphocytes T, l\'anti-PD-1 les maintient fonctionnels.']],
+es:[['Una nanopartícula lipídica introduce el ARNm personalizado en una célula dendrítica del ganglio linfático.','Los ribosomas traducen el ARNm en los neoantígenos propios del paciente.','Los péptidos neoantigénicos se cargan en el CMH-I y se presentan en la superficie celular.','Un linfocito T CD8⁺ con un receptor compatible reconoce el neoantígeno: se activa y se multiplica.'],
+ ['En el tumor, el linfocito T activado encuentra una célula de melanoma con el mismo neoantígeno.','El receptor de linfocitos T se une: la señal de activación (verde) entra en la célula.','El linfocito T libera IFN-γ y expresa PD-1.'],
+ ['El IFN-γ hace que la célula de melanoma produzca PD-L1. PD-L1 se une a PD-1 en el linfocito T.','La cola de PD-1 (ITSM) se fosforila y recluta la fosfatasa SHP-2.','SHP-2 apaga la señal del TCR: el linfocito T reconoce el tumor, pero no lo destruye.'],
+ ['Tratamiento: el anticuerpo anti-PD-1 pembrolizumab se une a PD-1.','PD-L1 es desplazado del sitio de unión: SHP-2 se separa.','La señal de activación vuelve: el freno se suelta.'],
+ ['Los gránulos líticos se desplazan a la zona de contacto de la sinapsis.','La perforina forma poros y la granzima B entra en la célula de melanoma.','Se activan las caspasas: la célula de melanoma muere por apoptosis.','La vacuna aporta los linfocitos T adecuados; el anti-PD-1 los mantiene funcionales.']],
+};
+const CAPS_L={};for(const l in CAP_TXT)CAPS_L[l]=CAP_TXT[l].map((a,i)=>a.map((txt,k)=>[CAP_T[i][k],txt]));
+let LANG='de';
+try{const s=localStorage.getItem('synapse-lang');if(s&&I18N[s])LANG=s;else{const n=(navigator.language||'de').slice(0,2);if(I18N[n])LANG=n;}}catch(e){}
+function T(k){const v=I18N[LANG][k];return v!==undefined?v:I18N.de[k];}
+const LEGEND=[['#2dd4bf','leg_tcr'],['#a78bfa','leg_cd8'],['#f472b6','leg_mhc','#fde047','leg_pep'],['#3b82f6','leg_pd1'],['#ef4444','leg_pdl1'],['#e5e7eb','leg_ab'],['#d946ef','leg_shp'],['#f97316','leg_gran'],['#a3e635','leg_sig','#22d3ee','lb_ifng']];
+const LANG_HOOKS=[];
+function applyStatic(){
+  document.documentElement.lang=LANG; document.title=T('title');
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=T(el.dataset.i18n);});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=T(el.dataset.i18nPh);});
+  const sw=c=>'<span class="sw" style="background:'+c+'"></span>';
+  const lg=document.getElementById('legend');
+  if(lg)lg.innerHTML=LEGEND.map(r=>'<div>'+sw(r[0])+T(r[1])+(r[2]?' · '+sw(r[2])+T(r[3]):'')+'</div>').join('');
+  document.querySelectorAll('#langbar button').forEach(b=>b.classList.toggle('on',b.dataset.l===LANG));
+}
+function setLang(l){if(!I18N[l])return;LANG=l;try{localStorage.setItem('synapse-lang',l);}catch(e){}applyStatic();LANG_HOOKS.forEach(f=>f());}
+
+applyStatic();
+document.querySelectorAll('#langbar button').forEach(b=>b.onclick=()=>setLang(b.dataset.l));
+// ---- 3D-Bibliothek robust laden (mehrere Quellen), Status anzeigen ----
+function setStatus(html){let el=document.getElementById('status');if(!el){el=document.createElement('div');el.id='status';document.getElementById('stage').appendChild(el);}el.innerHTML=html;el.style.display=html?'flex':'none';}
+function loadScript(urls){return new Promise((res,rej)=>{let i=0;const next=()=>{if(i>=urls.length)return rej(new Error('alle Quellen fehlgeschlagen'));const s=document.createElement('script');s.src=urls[i++];s.onload=()=>res();s.onerror=()=>{s.remove();next();};document.head.appendChild(s);};next();});}
+setStatus(T('status_loading'));
+loadScript(['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js','https://unpkg.com/three@0.128.0/build/three.min.js'])
+ .then(()=>loadScript(['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js','https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js']).catch(()=>null))
+ .then(()=>{try{main();setStatus('');}catch(e){console.error(e);setStatus(T('status_err')+'<br><code>'+e.message+'</code>');}})
+ .catch(()=>setStatus(T('status_fail')));
+// Einfache Maus-/Touch-Steuerung, falls OrbitControls nicht lädt
+function SimpleOrbit(cam,dom){const self=this;this.target=new THREE.Vector3();this.enableDamping=false;this.autoRotate=false;this.autoRotateSpeed=1;this.minDistance=5;this.maxDistance=100;
+ let th=0,ph=1.2,r=40,drag=null;const sync=()=>{const o=cam.position.clone().sub(self.target);r=o.length();th=Math.atan2(o.x,o.z);ph=Math.acos(Math.max(-1,Math.min(1,o.y/r)));};
+ dom.addEventListener('pointerdown',e=>{sync();drag=[e.clientX,e.clientY];dom.setPointerCapture(e.pointerId);});
+ dom.addEventListener('pointermove',e=>{if(!drag)return;th-=(e.clientX-drag[0])*.006;ph=Math.max(.1,Math.min(3,ph-(e.clientY-drag[1])*.006));drag=[e.clientX,e.clientY];place();});
+ dom.addEventListener('pointerup',()=>drag=null);
+ dom.addEventListener('wheel',e=>{e.preventDefault();sync();r=Math.max(self.minDistance,Math.min(self.maxDistance,r*(e.deltaY>0?1.1:.9)));place();},{passive:false});
+ const place=()=>{cam.position.set(self.target.x+r*Math.sin(ph)*Math.sin(th),self.target.y+r*Math.cos(ph),self.target.z+r*Math.sin(ph)*Math.cos(th));cam.lookAt(self.target);};
+ this.update=()=>{if(self.autoRotate&&!drag){sync();th+=.002*self.autoRotateSpeed;place();}else cam.lookAt(self.target);};}
+</script>
+<script>
+function main(){
+// ======================================================================
+//  Inhalte der Schritte (Medizin-Text)
+// ======================================================================
+let STEPS=STEPS_L[LANG];
+
+// ======================================================================
+//  3D-Grundgerüst
+// ======================================================================
+const stage=document.getElementById('stage');
+let renderer;try{renderer=new THREE.WebGLRenderer({antialias:true});}catch(e){throw new Error('WebGL ist in diesem Browser nicht verfügbar. Bitte Hardwarebeschleunigung aktivieren oder anderen Browser nutzen.');}
+renderer.setPixelRatio(Math.min(2,devicePixelRatio));
+stage.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0b0d12);
+scene.fog=new THREE.Fog(0x0b0d12,40,85);
+const camera=new THREE.PerspectiveCamera(42,1,0.1,300);
+camera.position.set(30,9,40);
+const controls=THREE.OrbitControls?new THREE.OrbitControls(camera,renderer.domElement):new SimpleOrbit(camera,renderer.domElement);
+controls.target.set(0,1,0); controls.enableDamping=true; controls.minDistance=8; controls.maxDistance=70;
+scene.add(new THREE.HemisphereLight(0xffffff,0x1e293b,0.75));
+const sun=new THREE.DirectionalLight(0xffffff,0.9); sun.position.set(15,25,20); scene.add(sun);
+const rim=new THREE.DirectionalLight(0x93c5fd,0.35); rim.position.set(-20,-10,-15); scene.add(rim);
+
+const Y_T=7, Y_B=-7;          // Membran T-Zelle oben, Tumor/DC unten (1 Einheit ≈ 1 nm)
+const mat=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.45,metalness:.05},o));
+const SPH=new THREE.SphereGeometry(1,28,18);
+function ell(rx,ry,rz,m,x=0,y=0,z=0,parent){const e=new THREE.Mesh(SPH,m);e.scale.set(rx,ry,rz);e.position.set(x,y,z);if(parent)parent.add(e);return e;}
+function cylBetween(a,b,r,m,parent){
+  const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A),L=d.length();
+  const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,L,12),m);
+  c.position.copy(A).add(B).multiplyScalar(.5);
+  c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
+  if(parent)parent.add(c);return c;}
+
+// ---------------- Membranen (Lipid-Doppelschicht) ----------------
+function membrane(y,color,count){
+  const g=new THREE.Group();
+  const heads=new THREE.InstancedMesh(new THREE.SphereGeometry(.36,8,6),mat(color,{roughness:.7}),count);
+  const base=[]; const m4=new THREE.Matrix4(); let k=0;
+  for(const leaf of [-0.75,0.75]) for(let x=-19;x<=19;x+=.9) for(let z=-12;z<=12;z+=.9){
+    if(k>=count)break; const jx=x+(Math.random()-.5)*.25, jz=z+(Math.random()-.5)*.25;
+    base.push([jx,y+leaf,jz,leaf]); m4.makeTranslation(jx,y+leaf,jz); heads.setMatrixAt(k++,m4);}
+  heads.count=k;
+  const core=new THREE.Mesh(new THREE.BoxGeometry(38.5,1.1,24.5),mat(color,{transparent:true,opacity:.28,roughness:1}));
+  core.position.y=y; g.add(heads,core); scene.add(g);
+  return {g,heads,core,base,color:new THREE.Color(color)};
+}
+const memT=membrane(Y_T,0x6ee7b7,2*43*27);
+const memB=membrane(Y_B,0x9a6b4f,2*43*27);
+const COL_MEL=new THREE.Color(0x9a6b4f), COL_DC=new THREE.Color(0x7dd3fc), COL_DEAD=new THREE.Color(0x52525b);
+
+// Melanosomen in der Melanomzelle
+const melanosomes=new THREE.Group(); scene.add(melanosomes);
+for(let i=0;i<26;i++) ell(.55+Math.random()*.4,.4,.5,mat(0x2b1b12,{roughness:.9}),(Math.random()-.5)*30,Y_B-3-Math.random()*6,(Math.random()-.5)*18,melanosomes);
+
+// ---------------- TCR-CD3-Komplex + CD8 ----------------
+const TCR_X=-6;
+const tcr=new THREE.Group(); scene.add(tcr);
+const mA=mat(0x2dd4bf), mB=mat(0x0ea5e9), mCD3=mat(0x99f6e4), mCD8=mat(0xa78bfa);
+cylBetween([-.55,Y_T+.9,0],[-.55,4.3,0],.22,mA,tcr); cylBetween([.55,Y_T+.9,0],[.55,4.3,0],.22,mB,tcr);
+ell(.85,1.1,.85,mA,-.55,3.4,0,tcr); ell(.85,1.1,.85,mB,.55,3.4,0,tcr);   // C-Domänen
+ell(.85,1.1,.85,mA,-.55,1.1,0,tcr); ell(.85,1.1,.85,mB,.55,1.1,0,tcr);   // V-Domänen (CDR-Schleifen unten)
+ell(.6,.75,.6,mCD3,-1.9,4.9,.3,tcr); ell(.6,.75,.6,mCD3,1.9,4.9,-.3,tcr); ell(.55,.7,.55,mCD3,0,5.0,1.3,tcr);
+cylBetween([-1.9,4.3,.3],[-1.9,Y_T+.9,.3],.15,mCD3,tcr); cylBetween([1.9,4.3,-.3],[1.9,Y_T+.9,-.3],.15,mCD3,tcr);
+// CD3ζ-Schwanz mit ITAMs (zytoplasmatisch)
+cylBetween([0,Y_T,1.3],[0,Y_T+5,1.3],.12,mCD3,tcr);
+const itams=[];
+for(const y of [Y_T+1.6,Y_T+2.9,Y_T+4.2]){const m=mat(0x4b5563,{emissive:0x000000});itams.push(ell(.32,.32,.32,m,0,y,1.3,tcr));}
+// CD8αβ
+const cd8=new THREE.Group(); tcr.add(cd8);
+cylBetween([-2.6,Y_T+.9,-1.2],[-2.3,-2.6,-1.0],.17,mCD8,cd8);
+ell(.75,.85,.7,mCD8,-2.1,-3.3,-.9,cd8);
+const lck=ell(.38,.38,.38,mat(0xc4b5fd),-2.6,Y_T+1.5,-1.2,cd8);
+tcr.position.set(TCR_X,0,0);
+
+// ---------------- MHC-I + Peptid ----------------
+const mhc=new THREE.Group(); scene.add(mhc);
+const mM=mat(0xf472b6), mB2=mat(0xf9a8d4);
+cylBetween([0,Y_B-.9,0],[0,-4.6,0],.22,mM,mhc);
+ell(.85,1.05,.85,mM,-.35,-3.7,0,mhc);       // α3
+ell(.75,.85,.75,mB2,1.2,-3.4,.2,mhc);        // β2-Mikroglobulin
+ell(1.9,.75,1.25,mM,0,-1.2,0,mhc);           // α1/α2-Plattform (Peptidbindungsfurche)
+const peptide=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,2,10),mat(0xfde047,{emissive:0x8a7a00,emissiveIntensity:.6}));
+peptide.rotation.z=Math.PI/2; peptide.position.set(0,-.38,0); mhc.add(peptide);
+mhc.position.set(TCR_X,0,0);
+
+// ---------------- PD-1 / PD-L1 / Antikörper / SHP-2 ----------------
+const P_POS=[[3,-3.2],[6.5,2.6],[10,-1.2]];
+const mPD1=mat(0x3b82f6), mPDL1=mat(0xef4444), mAb=mat(0xe5e7eb,{roughness:.35}), mAbV=mat(0xcbd5e1), mSHP=mat(0xd946ef);
+const pd1=[],pdl1=[],abs=[],shp=[];
+P_POS.forEach(([x,z],i)=>{
+  // PD-1: zytoplasmatischer Schwanz (ITIM, ITSM) – TM – Stiel – IgV-Domäne
+  const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
+  cylBetween([0,Y_T-1,0],[0,Y_T+5.2,0],.15,mPD1,g);
+  cylBetween([0,Y_T-1,0],[0,2.0,0],.17,mPD1,g);
+  ell(1.1,1.0,1.0,mPD1,0,1.05,0,g);
+  const itim=ell(.28,.28,.28,mat(0x93c5fd),0,Y_T+2.0,0,g);
+  const itsm=ell(.34,.34,.34,mat(0x93c5fd,{emissive:0x000000}),0,Y_T+3.6,0,g);
+  pd1.push({g,itsm,x,z});
+  // PD-L1: TM – IgC – IgV
+  const h=new THREE.Group(); scene.add(h);
+  cylBetween([0,Y_B-.9,0],[0,-4.0,0],.17,mPDL1,h);
+  ell(.9,1.0,.9,mPDL1,0,-3.0,0,h);
+  ell(1.0,1.0,1.0,mPDL1,0,-1.0,0,h);
+  pdl1.push({g:h,x,z,side:i%2?1:-1});
+  // Pembrolizumab (IgG4, Y-Form): Fab-Spitze im lokalen Ursprung
+  const a=new THREE.Group();
+  ell(.62,.62,.62,mAbV,.45,0,0,a); ell(.62,.62,.62,mAb,1.5,.25,0,a);          // Fab 1 (VH/VL, CH1/CL)
+  ell(.62,.62,.62,mAb,4.0,1.5,0,a); ell(.62,.62,.62,mAbV,4.9,2.4,0,a);        // Fab 2
+  ell(.66,.7,.66,mAb,3.4,-.9,0,a); ell(.66,.7,.66,mAb,3.9,-2.1,0,a);          // Fc (CH2, CH3)
+  cylBetween([1.5,.25,0],[2.8,.7,0],.18,mAb,a); cylBetween([4.0,1.5,0],[2.8,.7,0],.18,mAb,a); cylBetween([2.8,.7,0],[3.4,-.9,0],.18,mAb,a);
+  a.userData={far:new THREE.Vector3(x+26,4+i*2,z+8*(i-1)),bound:new THREE.Vector3(x+.85,.35,z),rot:[0.4+i*.7,-0.35]};
+  scene.add(a); abs.push(a);
+  // SHP-2 (N-SH2, C-SH2, PTP-Domäne)
+  const s=new THREE.Group();
+  ell(.42,.42,.42,mSHP,0,0,0,s); ell(.42,.42,.42,mSHP,.75,.25,0,s); ell(.62,.6,.6,mat(0xc026d3),.35,.95,0,s);
+  s.userData={rest:new THREE.Vector3(x+1.5,Y_T+8,z+1.5),atPD1:new THREE.Vector3(x+.55,Y_T+3.6,z),
+    atTCR:new THREE.Vector3(TCR_X+.6+i*.25,Y_T+2.2+i*1.1,1.3+(i-1)*.7)};
+  s.position.copy(s.userData.rest); scene.add(s); shp.push(s);
+});
+
+// ---------------- Lytische Granula & Perforin-Poren ----------------
+const granules=[];
+for(let i=0;i<4;i++){
+  const g=new THREE.Group();
+  const shell=ell(.95,.95,.95,mat(0xf97316,{transparent:true,opacity:.55}),0,0,0,g);
+  for(let k=0;k<6;k++) ell(.18,.18,.18,mat(0xfed7aa),(Math.random()-.5)*1,(Math.random()-.5)*1,(Math.random()-.5)*1,g);
+  g.userData={store:new THREE.Vector3(-4.5+i*1.3,Y_T+8.5,(i%2)*1.6-.8),dock:new THREE.Vector3(-3.8+i*.75,Y_T+1.6,(i%2)*1.2-.6)};
+  g.position.copy(g.userData.store); scene.add(g); granules.push(g);
+}
+const pores=[];
+for(let i=0;i<6;i++){
+  const t=new THREE.Mesh(new THREE.TorusGeometry(.5,.14,8,18),mat(0xfb923c,{emissive:0x7c2d12}));
+  t.rotation.x=Math.PI/2; t.position.set(-3.8+(i%3)*1.2,Y_B+.85,(i<3?-.8:.8)); t.scale.setScalar(.001); scene.add(t); pores.push(t);
+}
+
+// ---------------- LNP + mRNA (nur im Impf-Schritt) ----------------
+const lnp=new THREE.Group(); scene.add(lnp);
+const lnpMat=mat(0xfef3c7,{transparent:true,opacity:1});
+const lnpCoreMat=mat(0xfde68a,{transparent:true,opacity:.35});
+const lnpHeads=new THREE.InstancedMesh(new THREE.SphereGeometry(.17,6,5),lnpMat,160);
+{const m4=new THREE.Matrix4();for(let i=0;i<160;i++){const u=1-2*(i+.5)/160,th=i*2.39996,s=Math.sqrt(1-u*u);m4.makeTranslation(1.9*s*Math.cos(th),1.9*u,1.9*s*Math.sin(th));lnpHeads.setMatrixAt(i,m4);}}
+lnp.add(lnpHeads); lnp.add(new THREE.Mesh(new THREE.SphereGeometry(1.75,20,14),lnpCoreMat));
+const LNP_START=new THREE.Vector3(TCR_X+2,Y_B-16,6), LNP_END=new THREE.Vector3(TCR_X+3,Y_B-6,2.5);
+const mrnaCurve=new THREE.CatmullRomCurve3(Array.from({length:14},(_,i)=>new THREE.Vector3(TCR_X-2+i*.55,Y_B-6+Math.sin(i*.9)*.7,2.5+Math.cos(i*.7)*.8)));
+const mrnaMat=mat(0xfacc15,{transparent:true,opacity:0,emissive:0x854d0e});
+const mrna=new THREE.Mesh(new THREE.TubeGeometry(mrnaCurve,80,.13,8),mrnaMat); scene.add(mrna);
+const riboMat=mat(0x94a3b8,{transparent:true,opacity:0});
+const ribos=[0.3,0.6].map(t=>{const r=ell(.55,.45,.45,riboMat);r.position.copy(mrnaCurve.getPoint(t)).add(new THREE.Vector3(0,.5,0));scene.add(r);return r;});
+
+// ---------------- Partikel (Signal, IFN-γ, Granzym) ----------------
+function particles(color,size,cap){
+  const m=new THREE.InstancedMesh(new THREE.SphereGeometry(size,6,5),mat(color,{emissive:color,emissiveIntensity:.8}),cap);
+  m.count=0; scene.add(m); return {m,list:[],cap,acc:0};
+}
+const pSig=particles(0xa3e635,.16,400), pIfn=particles(0x22d3ee,.18,300), pGzm=particles(0xfdba74,.14,300);
+function emit(P,rate,dt,make){P.acc+=rate*dt;while(P.acc>=1){P.acc--;if(P.list.length<P.cap)P.list.push(make());}}
+const _m=new THREE.Matrix4();
+function updParticles(P,dt){
+  P.list=P.list.filter(p=>(p.life-=dt)>0);
+  P.list.forEach((p,i)=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;const s=Math.min(1,p.life*1.5);_m.makeScale(s,s,s).setPosition(p.x,p.y,p.z);P.m.setMatrixAt(i,_m);});
+  P.m.count=P.list.length; P.m.instanceMatrix.needsUpdate=true;
+}
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+// ======================================================================
+//  Zeitachse: jeder Schritt definiert Zielwerte als Funktion der Zeit t
+// ======================================================================
+const sm=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+const BASE={dc:0,lnpA:0,lnpD:1,mrna:0,neo:1,mhcRise:1,tcr:1,signal:0,pdl1:0,itsm:0,ab:0,shp:'rest',gran:0,fuse:0,pores:0,apop:0,ifng:0,gzm:0};
+const TARGET=[
+ t=>({...BASE,dc:1,lnpA:sm(0,2.2,t),lnpD:sm(2.2,3.4,t),mrna:sm(2.4,3.2,t)*(1-sm(6.5,7.5,t)),neo:sm(4,5,t),mhcRise:sm(4.6,6.6,t),
+       tcr:sm(6.8,8.3,t),signal:sm(7.8,9.3,t)}),
+ t=>({...BASE,tcr:sm(.4,2,t),signal:sm(1.6,3,t),ifng:.35*sm(2.5,3.5,t)}),
+ t=>({...BASE,signal:1-.88*sm(6,7.5,t),pdl1:sm(.5,2.5,t),itsm:sm(2.6,3.4,t),shp:t<3.4?'rest':t<5.4?'pd1':'tcr',ifng:.35}),
+ t=>({...BASE,signal:.12+.88*sm(5,6.5,t),pdl1:1-sm(2.6,4,t),itsm:1-sm(4,5,t),ab:sm(.4,3.4,t),shp:t<4.6?'tcr':'rest',ifng:.35}),
+ t=>({...BASE,signal:1,ab:1,gran:sm(.5,3,t),fuse:sm(3,4,t),pores:sm(3.5,4.6,t),gzm:(t>3.6&&t<9.5)?1:0,ifng:1,apop:sm(5,9.5,t)}),
+];
+const cur={...TARGET[0](0)}; cur.lnpD=0;
+let step=0, tStep=0, autoplay=false;
+
+// ======================================================================
+//  UI
+// ======================================================================
+const stepsEl=document.getElementById('steps');
+function renderSteps(){stepsEl.innerHTML='';STEPS.forEach((s,i)=>{const b=document.createElement('button');b.innerHTML=s.title+'<small>'+s.short+'</small>';b.classList.toggle('on',i===step);b.onclick=()=>{autoplay=false;setAuto();go(i);};stepsEl.appendChild(b);});}
+renderSteps();
+function go(i){step=Math.max(0,Math.min(STEPS.length-1,i));tStep=0;
+  [...stepsEl.children].forEach((b,k)=>b.classList.toggle('on',k===step));
+  document.getElementById('text').innerHTML=STEPS[step].html;
+  if(step!==4){granules.forEach(g=>g.position.copy(g.userData.store));}
+}
+function setAuto(){document.getElementById('auto').textContent=autoplay?T('auto_stop'):T('auto_play');}
+document.getElementById('prev').onclick=()=>go(step-1);
+document.getElementById('next').onclick=()=>go(step+1);
+document.getElementById('replay').onclick=()=>go(step);
+document.getElementById('auto').onclick=()=>{autoplay=!autoplay;setAuto();if(autoplay)go(0);};
+const optLabels=document.getElementById('optLabels'), optLipids=document.getElementById('optLipids'), optRotate=document.getElementById('optRotate');
+optLipids.onchange=()=>{memT.heads.visible=memB.heads.visible=optLipids.checked;};
+
+// ---------------- Kamera-Ansichten ----------------
+const CAMS=[[V0(30,9,40),V0(1,0,0)],[V0(17,4,20),V0(6.5,0,0)],[V0(1,3,17),V0(-6,0,0)],[V0(10,16,20),V0(1,10,0)]];
+function V0(x,y,z){return new THREE.Vector3(x,y,z);}
+let camTween=null;
+document.querySelectorAll('#cams button').forEach(b=>b.onclick=()=>{const [p,t]=CAMS[+b.dataset.c];camTween={p0:camera.position.clone(),t0:controls.target.clone(),p,t,u:0};});
+
+// ---------------- Sprechtext + Text-to-Speech ----------------
+const INTRO='Willkommen. In diesem Film zeigen wir, wie eine personalisierte mRNA-Impfung zusammen mit einer PD-1-Blockade das Immunsystem gegen das maligne Melanom unterstützt. Dafür betrachten wir die immunologische Synapse, also die Kontaktstelle zwischen einer T-Zelle und einer Tumorzelle, im Maßstab von Nanometern.';
+const NARR=[
+ ['Am Anfang steht die Impfung. Aus dem Tumorgewebe des Patienten werden die Mutationen bestimmt, die nur sein Tumor trägt. Daraus wird eine mRNA hergestellt, die für bis zu 34 dieser Neoantigene kodiert. Ein Lipid-Nanopartikel schleust die mRNA in eine dendritische Zelle im Lymphknoten.',
+  'Dort übersetzen Ribosomen die mRNA in Proteine.',
+  'Die Proteine werden im Proteasom zerlegt. Die Neoantigen-Peptide werden auf MHC-I-Moleküle geladen und an der Zelloberfläche präsentiert.',
+  'Eine zytotoxische CD8-positive T-Zelle, deren T-Zell-Rezeptor genau dieses Peptid erkennt, wird aktiviert und vermehrt sich klonal. Die Impfung sorgt also dafür, dass es viele tumorspezifische T-Zellen gibt.'],
+ ['Die aktivierten T-Zellen wandern über das Blut in den Tumor. Die Melanomzelle präsentiert dasselbe Neoantigen auf MHC-I.',
+  'Der T-Zell-Rezeptor bindet, unterstützt vom Korezeptor CD8. Die Kinase LCK phosphoryliert die ITAM-Motive des CD3-Komplexes, und das Aktivierungssignal, hier grün dargestellt, läuft in die T-Zelle.',
+  'Die aktivierte T-Zelle schüttet Interferon gamma aus und bildet auf ihrer Oberfläche den Rezeptor PD-1.'],
+ ['Hier beginnt das Problem. Interferon gamma bringt die Melanomzelle dazu, PD-L1 zu bilden. PD-L1 bindet an PD-1. Man spricht von adaptiver Immunresistenz.',
+  'Im zytoplasmatischen Schwanz von PD-1 wird das ITSM-Motiv phosphoryliert. Es rekrutiert die Phosphatase SHP-2.',
+  'SHP-2 entfernt Phosphatgruppen von den Signalmolekülen des T-Zell-Rezeptors und von CD28. Das Aktivierungssignal bricht ab. Die T-Zelle erkennt den Tumor, aber sie tötet ihn nicht. Bei dauerhafter Hemmung wird sie erschöpft.'],
+ ['Jetzt kommt die Therapie. Pembrolizumab ist ein humanisierter Antikörper der Klasse IgG4. Er bindet an die äußere Domäne von PD-1.',
+  'Seine Bindestelle überlappt mit der von PD-L1. PD-L1 wird verdrängt, das ITSM-Motiv wird nicht mehr phosphoryliert, und SHP-2 löst sich.',
+  'Das Aktivierungssignal kehrt zurück. Der Antikörper löst die Bremse des Immunsystems.'],
+ ['Die T-Zelle richtet ihr Mikrotubuli-Organisationszentrum zur Synapse aus. Lytische Granula wandern zur Kontaktstelle und verschmelzen mit der Membran.',
+  'Perforin bildet Poren in der Membran der Melanomzelle. Durch diese Poren gelangt Granzym B in die Zelle.',
+  'Granzym B aktiviert Caspasen, und die Melanomzelle stirbt durch Apoptose.',
+  'Zusammengefasst: Die mRNA-Impfung liefert die richtigen T-Zellen, der Anti-PD-1-Antikörper hält sie funktionsfähig. Erst beides zusammen ermöglicht die volle Effektorfunktion.'],
+];
+const OUTRO='In der Phase-3-Studie INTerpath-001 senkte die Kombination aus intismeran autogene und Pembrolizumab das Risiko für Rückfall oder Tod um 42 Prozent im Vergleich zu Pembrolizumab allein. Vielen Dank fürs Zuschauen.';
+// Aussprache-Hilfen für die Sprachsynthese
+const SAY=[[/PD-L1/g,'P D L 1'],[/PD-1/g,'P D 1'],[/MHC-I-/g,'M H C 1 '],[/MHC-I/g,'M H C 1'],[/CD8/g,'C D 8'],[/CD28/g,'C D 28'],[/CD3/g,'C D 3'],
+ [/SHP-2/g,'S H P 2'],[/ITSM/g,'I T S M'],[/ITAM/g,'I T A M'],[/LCK/g,'L C K'],[/IgG4/g,'I g G 4'],[/mRNA/g,'m R N A'],[/INTerpath-001/g,'Interpath null null eins'],[/Phase-3/g,'Phase 3']];
+const toSpeech=t=>SAY.reduce((s,[a,b])=>s.replace(a,b),t);
+const synth=window.speechSynthesis||null;
+const vSel=document.getElementById('voiceSel'), vRate=document.getElementById('voiceRate'), vOn=document.getElementById('voiceOn');
+let pending=0;
+function loadVoices(){
+  if(!synth){vSel.innerHTML='<option>Keine Sprachausgabe in diesem Browser</option>';vOn.checked=false;return;}
+  const vs=synth.getVoices().filter(v=>/^de/i.test(v.lang));
+  const score=v=>(/natural|online|neural|premium|enhanced/i.test(v.name)?0:1);
+  vs.sort((a,b)=>score(a)-score(b)||a.name.localeCompare(b.name));
+  const keep=vSel.value;
+  vSel.innerHTML=vs.length?vs.map(v=>'<option value="'+v.name.replace(/"/g,'')+'">'+v.name+'</option>').join(''):'<option value="">Keine deutsche Stimme gefunden</option>';
+  if(keep&&vs.some(v=>v.name===keep))vSel.value=keep;
+}
+if(synth){loadVoices();synth.onvoiceschanged=loadVoices;setTimeout(loadVoices,500);}
+function speak(text){
+  if(!synth||!vOn.checked)return;
+  const voice=synth.getVoices().find(v=>v.name===vSel.value);
+  // in Sätze teilen (Chrome bricht sehr lange Äußerungen sonst ab)
+  const parts=toSpeech(text).match(/[^.!?]+[.!?]*/g)||[text];
+  parts.forEach(p=>{const u=new SpeechSynthesisUtterance(p.trim());u.lang=voice?voice.lang:'de-DE';if(voice)u.voice=voice;u.rate=+vRate.value;
+    pending++;let done=false;const fin=()=>{if(!done){done=true;pending=Math.max(0,pending-1);}};u.onend=fin;u.onerror=fin;synth.speak(u);});
+}
+const speaking=()=>vOn.checked&&synth&&(pending>0);
+document.getElementById('voiceTest').onclick=()=>{if(synth)synth.cancel();pending=0;speak('Hallo. So klingt die Sprecherstimme für euren Lehrfilm über P D 1 und die m R N A Impfung.'.replace(/P D 1|m R N A/g,m=>m));};
+document.getElementById('scriptBox').innerHTML='<p><b>Titel:</b> '+INTRO+'</p>'+NARR.map((a,i)=>'<p><b>'+STEPS[i].title+':</b> '+a.join(' ')+'</p>').join('')+'<p><b>Abspann:</b> '+OUTRO+'</p>';
+
+// ---------------- Film-Modus ----------------
+const FILM_DUR=[15,10,13,12,15];
+let CAPS=CAPS_L[LANG];
+const CAMK=[
+ [[0,[13,-5,25],[-3,-10,1]],[5,[14,-3,25],[-5,-6,0]],[8.5,[9,2,22],[-5,-1,0]],[15,[10,4,24],[-5,1,0]]],
+ [[0,[3,2,18],[-6,0,0]],[3,[5,8,20],[-6,5,0]],[10,[6,9,22],[-5,6,0]]],
+ [[0,[16,2,19],[6.5,0,0]],[3,[15,11,23],[3,8,0]],[6.5,[11,10,24],[-1,6,0]],[13,[13,8,27],[0,4,0]]],
+ [[0,[30,6,30],[11,1,0]],[3.5,[18,4,21],[6.5,0,0]],[6,[14,10,23],[0,6,0]],[12,[16,7,27],[2,3,0]]],
+ [[0,[6,11,20],[-3,7,0]],[3.3,[6,0,18],[-3,-3,0]],[7.5,[22,5,30],[0,-2,0]],[15,[28,9,38],[1,0,0]]],
+];
+function camAt(keys,t){
+  let a=keys[0],b=keys[keys.length-1];
+  for(let i=0;i<keys.length-1;i++){if(t>=keys[i][0]&&t<keys[i+1][0]){a=keys[i];b=keys[i+1];break;}}
+  if(t>=keys[keys.length-1][0])a=b;
+  const u=a===b?1:sm(a[0],b[0],t);
+  return [V0(...a[1]).lerp(V0(...b[1]),u),V0(...a[2]).lerp(V0(...b[2]),u)];
+}
+const film={on:false,phase:'',t:0,said:-1};
+const fCap=document.getElementById('filmCap'),fStep=document.getElementById('filmStep'),fCard=document.getElementById('filmCard');
+function endCard(){const names=document.getElementById('filmNames').value.trim();return '<h1>'+T('end_title')+'</h1><ul>'+T('end_items').map(x=>'<li>'+x+'</li>').join('')+'</ul><small>'+T('end_note')+(names?'<br><br>'+names.replace(/</g,'&lt;'):'')+'</small>';}
+function card(html){fCard.innerHTML=html;fCard.style.display=html?'flex':'none';fCard.style.opacity=1;}
+function filmStart(){film.on=true;film.phase='ready';autoplay=false;setAuto();document.body.classList.add('film');optLabels.checked=true;
+  go(0);card(T('card_ready'));
+  try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}
+  setTimeout(resize,300);}
+function filmStop(){film.on=false;if(synth)synth.cancel();pending=0;document.body.classList.remove('film');card('');fCap.style.opacity=0;fStep.style.opacity=0;
+  try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}setTimeout(resize,300);}
+function filmGo(){if(film.phase!=='ready')return;film.phase='title';film.t=0;go(0);if(synth)synth.cancel();pending=0;speak(INTRO);
+  card(T('card_title'));}
+document.getElementById('filmBtn').onclick=filmStart;
+fCard.addEventListener('click',filmGo);
+addEventListener('keydown',e=>{if(!film.on)return;if(e.key==='Escape')filmStop();if(e.key===' '){e.preventDefault();filmGo();}});
+function filmFrame(dt){
+  film.t+=dt;
+  if(film.phase==='ready'||film.phase==='title'){tStep=0;}
+  if(film.phase==='title'&&film.t>5&&!speaking()){film.phase='steps';film.said=-1;go(0);fCard.style.opacity=0;setTimeout(()=>{if(film.phase==='steps')card('');},1000);}
+  if(film.phase==='steps'&&tStep>FILM_DUR[step]&&!speaking()){
+    if(step<STEPS.length-1){go(step+1);film.said=-1;}
+    else{film.phase='end';film.t=0;fCap.style.opacity=0;fStep.style.opacity=0;speak(OUTRO);
+      const names=document.getElementById('filmNames').value.trim();
+      card(endCard());fCard.style.opacity=0;requestAnimationFrame(()=>fCard.style.opacity=1);}
+  }
+  if(film.phase==='steps'){
+    const cs=CAPS[step];let ci=0;for(let k=0;k<cs.length;k++)if(tStep>=cs[k][0])ci=k;
+    if(ci>film.said){ if(speaking()&&film.said>=0){tStep-=dt;ci=film.said;} else {film.said=ci;speak(NARR[step][ci]);} }
+    if(tStep>FILM_DUR[step]&&speaking())tStep-=dt;
+    const txt=cs[Math.max(0,ci)][1];
+    if(fCap.textContent!==txt){fCap.style.opacity=0;setTimeout(()=>{fCap.textContent=txt;fCap.style.opacity=1;},350);fCap.textContent=txt;fCap.style.opacity=1;}
+    fStep.textContent=T('fs')[step];fStep.style.opacity=1;
+    const [p,t]=camAt(CAMK[step],tStep);camera.position.lerp(p,1-Math.exp(-dt*3));controls.target.lerp(t,1-Math.exp(-dt*3));camera.lookAt(controls.target);
+  } else if(film.phase==='end'){
+    const a=film.t*.08;camera.position.set(1+38*Math.sin(.65+a),9,38*Math.cos(.65+a));controls.target.set(1,0,0);camera.lookAt(controls.target);
+  } else {camera.position.set(13,-5,25);controls.target.set(-3,-10,1);camera.lookAt(controls.target);}
+}
+// ---------------- Beschriftungen ----------------
+const labelsEl=document.getElementById('labels'); const LABELS=[];
+function label(key,fn,vis=()=>1,big){const el=document.createElement('div');el.className='lb'+(big?' big':'');el.textContent=T(key);labelsEl.appendChild(el);LABELS.push({el,fn,vis,key});}
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+label('lb_tcell',()=>V(-16,Y_T+7,-10),()=>1,true);
+label('lb_dc',()=>V(-16,Y_B-4,-10),()=>1,true);
+label('lb_cleft',()=>V(15,0,-9));
+label('lb_tcr',()=>tcr.position.clone().add(V(-1.4,2.5,0)));
+label('lb_itams',()=>tcr.position.clone().add(V(.6,Y_T+5,1.3)));
+label('lb_cd8',()=>tcr.position.clone().add(V(-2.8,-1.5,-1)));
+label('lb_mhc',()=>mhc.position.clone().add(V(0,-1.8,1.6)),()=>cur.mhcRise>.6);
+label('lb_pd1',()=>V(P_POS[1][0],2.3,P_POS[1][1]));
+label('lb_itsm',()=>V(P_POS[1][0]+.4,Y_T+4.1,P_POS[1][1]));
+label('lb_pdl1',()=>pdl1[1].g.position.clone().add(V(0,-.2,1.2)));
+label('lb_ab',()=>abs[2].position.clone().add(V(3,2.4,0)),()=>cur.ab>.05);
+label('lb_shp',()=>shp[0].position.clone().add(V(0,1.8,0)));
+label('lb_gran',()=>granules[3].position.clone().add(V(0,1.4,0)),()=>1-cur.fuse);
+label('lb_pores',()=>V(-2.6,Y_B+1.6,1.6),()=>cur.pores>.3);
+label('lb_lnp',()=>lnp.position.clone().add(V(0,2.6,0)),()=>(1-cur.lnpD)*cur.dc);
+label('lb_mrna',()=>V(TCR_X+2,Y_B-4.3,3),()=>cur.mrna);
+label('lb_melano',()=>V(8,Y_B-5,6),()=>(1-cur.dc)*(1-cur.apop));
+label('lb_ifng',()=>V(2,-.5,7),()=>cur.ifng>.2);
+
+// ======================================================================
+//  Bild aktualisieren
+// ======================================================================
+const tmpC=new THREE.Color(), grey=new THREE.Color(0x4b5563), lime=new THREE.Color(0xa3e635), pale=new THREE.Color(0x93c5fd), ora=new THREE.Color(0xf97316);
+let clock=performance.now(), simT=0;
+function frame(){
+  requestAnimationFrame(frame);
+  const now=performance.now(), dt=Math.min(.05,(now-clock)/1000); clock=now; simT+=dt; tStep+=dt;
+  if(film.on) filmFrame(dt);
+  if(autoplay&&tStep>STEPS[step].dur){ if(step<STEPS.length-1) go(step+1); else {autoplay=false;setAuto();} }
+  // Zielwerte annähern
+  const tg=TARGET[step](tStep), k=1-Math.exp(-dt*5);
+  for(const key in tg) if(typeof tg[key]==='number') cur[key]+= (tg[key]-cur[key])*k;
+  cur.shp=tg.shp;
+
+  // Zielzelle: DC ↔ Melanom ↔ apoptotisch
+  tmpC.copy(COL_MEL).lerp(COL_DC,cur.dc).lerp(COL_DEAD,cur.apop*.8);
+  memB.heads.material.color.copy(tmpC); memB.core.material.color.copy(tmpC);
+  melanosomes.visible=cur.dc<.5;
+  // Membran-Blebbing bei Apoptose
+  if(cur.apop>.01||memB._bleb){
+    memB._bleb=cur.apop>.01; const m4=new THREE.Matrix4();
+    memB.base.forEach((b,i)=>{const w=cur.apop*1.3*Math.sin(b[0]*.45+simT*1.4)*Math.cos(b[2]*.5-simT);m4.makeTranslation(b[0],b[1]+w,b[2]);memB.heads.setMatrixAt(i,m4);});
+    memB.heads.instanceMatrix.needsUpdate=true;
+  }
+  // LNP + mRNA
+  lnp.position.lerpVectors(LNP_START,LNP_END,cur.lnpA);
+  const lop=Math.max(0,(1-cur.lnpD))*Math.min(1,cur.dc*1.5);
+  lnp.scale.setScalar(1+cur.lnpD*1.2); lnpMat.opacity=lop; lnpCoreMat.opacity=.35*lop; lnp.visible=lop>.02; lnp.rotation.y+=dt*.4;
+  mrnaMat.opacity=cur.mrna; riboMat.opacity=cur.mrna; mrna.visible=cur.mrna>.02; ribos.forEach(r=>r.visible=mrna.visible);
+  // MHC (aus dem ER an die Oberfläche) + Peptid
+  mhc.position.y=-(1-cur.mhcRise)*8; peptide.scale.setScalar(Math.max(.001,cur.neo));
+  // TCR nähert sich und bindet
+  tcr.position.set(TCR_X+(1-cur.tcr)*4.5,0,-(1-cur.tcr)*2.5);
+  tcr.rotation.z=(1-cur.tcr)*.35;
+  itams.forEach((m,i)=>{m.material.color.copy(grey).lerp(lime,cur.signal);m.material.emissive.copy(lime).multiplyScalar(cur.signal*(.6+.4*Math.sin(simT*6+i)));});
+  lck.material.emissive=lime.clone().multiplyScalar(cur.signal*.4);
+  // PD-L1 bindet an PD-1
+  pdl1.forEach(p=>{const u=1-cur.pdl1;p.g.position.set(p.x+u*3.6,-u*.9,p.z+u*1.8*p.side);});
+  pd1.forEach(p=>{p.itsm.material.color.copy(pale).lerp(ora,cur.itsm);p.itsm.material.emissive.copy(ora).multiplyScalar(cur.itsm*.7);});
+  // Antikörper
+  abs.forEach((a,i)=>{a.position.lerpVectors(a.userData.far,a.userData.bound,cur.ab);
+    a.rotation.set(0,a.userData.rot[0]+(1-cur.ab)*(simT*.6+i),a.userData.rot[1]+(1-cur.ab)*Math.sin(simT+i));});
+  // SHP-2
+  shp.forEach(s=>{const d=s.userData,tgt=cur.shp==='pd1'?d.atPD1:cur.shp==='tcr'?d.atTCR:d.rest;s.position.lerp(tgt,1-Math.exp(-dt*2.2));s.rotation.y+=dt;});
+  // Granula & Poren
+  granules.forEach(g=>{g.position.lerpVectors(g.userData.store,g.userData.dock,cur.gran);g.scale.setScalar(Math.max(.001,1-cur.fuse));});
+  pores.forEach(p=>p.scale.setScalar(Math.max(.001,cur.pores)));
+  // Partikel
+  const sigRate=cur.signal*cur.tcr*28;
+  emit(pSig,sigRate,dt,()=>({x:tcr.position.x+rnd(-.3,.3),y:Y_T+5,z:1.3+rnd(-.3,.3),vx:rnd(-.8,.8),vy:rnd(1.8,3),vz:rnd(-.8,.8),life:rnd(1.6,2.6)}));
+  emit(pIfn,cur.ifng*14,dt,()=>({x:rnd(-5,-2),y:rnd(-1.5,1.5),z:rnd(-1,1),vx:rnd(.5,3),vy:rnd(-.3,.3),vz:rnd(-2,2),life:rnd(2,4)}));
+  emit(pGzm,cur.gzm*30,dt,()=>({x:rnd(-4,-1.4),y:Y_B+.6,z:rnd(-1.2,1.2),vx:rnd(-.6,.6),vy:rnd(-2.6,-1.4),vz:rnd(-.6,.6),life:rnd(1.5,2.8)}));
+  [pSig,pIfn,pGzm].forEach(P=>updParticles(P,dt));
+
+  // Messbalken
+  const meter=[cur.signal*cur.tcr, cur.pdl1, cur.ab, cur.apop];
+  meter.forEach((v,i)=>{document.getElementById('m'+i).style.width=(v*100).toFixed(0)+'%';document.getElementById('n'+i).textContent=(v*100).toFixed(0)+'%';});
+
+  if(camTween){camTween.u=Math.min(1,camTween.u+dt/1.2);const e=camTween.u*camTween.u*(3-2*camTween.u);
+    camera.position.lerpVectors(camTween.p0,camTween.p,e);controls.target.lerpVectors(camTween.t0,camTween.t,e);if(camTween.u>=1)camTween=null;}
+  if(optRotate.checked){controls.autoRotate=true;controls.autoRotateSpeed=.6;}else controls.autoRotate=false;
+  if(!film.on) controls.update(); renderer.render(scene,camera);
+  // Beschriftungen projizieren
+  const W=stage.clientWidth,H=stage.clientHeight;
+  LABELS.forEach(L=>{
+    const p=L.fn().project(camera); const vis=optLabels.checked?L.vis():0;
+    if(p.z>1||vis<.05){L.el.style.opacity=0;return;}
+    L.el.style.opacity=Math.min(1,vis); L.el.style.left=((p.x+1)/2*W)+'px'; L.el.style.top=((1-p.y)/2*H)+'px';
+  });
+  LABELS[1].el.textContent=cur.dc>.5?T('lb_dc'):(cur.apop>.5?T('lb_mel_apo'):T('lb_mel'));
+}
+function resize(){const r=stage.getBoundingClientRect();if(r.width<10||r.height<10)return;renderer.setSize(r.width,r.height);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();}
+addEventListener('resize',resize);
+LANG_HOOKS.push(()=>{STEPS=STEPS_L[LANG];CAPS=CAPS_L[LANG];renderSteps();document.getElementById('text').innerHTML=STEPS[step].html;setAuto();
+  LABELS.forEach(L=>{L.el.textContent=T(L.key);});
+  if(film.on){if(film.phase==='ready')card(T('card_ready'));else if(film.phase==='title')card(T('card_title'));else if(film.phase==='end')card(endCard());}
+});
+go(0); resize(); frame();
+if(window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+}
+</script>
+</body>
+</html>
