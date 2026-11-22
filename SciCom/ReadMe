@@ -12,3 +12,5 @@ Molecular model: zooms into the immunological synapse at the nanometer scale. It
 Together, the models explain why the combination works: the vaccine supplies tumor-specific T cells, and the anti-PD-1 antibody keeps them functional.
 
 Both models are written in JavaScript using the 3D library three.js and are simplified teaching models.
+
+Olivia Hank & Mariella Metzner
