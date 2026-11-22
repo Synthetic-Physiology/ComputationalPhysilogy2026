@@ -1,1 +1,14 @@
-Insert the description here
+Personalized mRNA Vaccination and PD-1 Blockade in Melanoma – Interactive 3D Models
+
+This project was created for the elective course Computational Physiology by two female medical students with a strong interest in dermatology. It shows how a personalized mRNA neoantigen vaccine and an anti-PD-1 antibody (pembrolizumab) work together against malignant melanoma.
+
+We chose this topic because it is highly relevant at the moment. New findings and publications are changing the outlook for melanoma treatment, most notably the 2026 results of the phase 3 trial INTerpath-001. In this trial, adding the personalized mRNA vaccine intismeran autogene to pembrolizumab reduced the risk of recurrence or death in patients with resected high-risk melanoma.
+
+We built two complementary 3D models that run directly in the browser:
+
+Cellular model: shows a cytotoxic T cell and a melanoma cell as whole cells. It gives an overview of the process, from vaccination through PD-1 blockade to the destruction of the tumor cell, including the typical time scales.
+Molecular model: zooms into the immunological synapse at the nanometer scale. It shows how the T-cell receptor recognizes a neoantigen on MHC-I, how PD-L1 binding to PD-1 shuts down T-cell signaling via the phosphatase SHP-2, how the antibody blocks PD-1, and how perforin and granzyme B finally induce apoptosis. It includes a film mode and is available in German, English, French and Spanish.
+
+Together, the models explain why the combination works: the vaccine supplies tumor-specific T cells, and the anti-PD-1 antibody keeps them functional.
+
+Both models are written in JavaScript using the 3D library three.js and are simplified teaching models.
