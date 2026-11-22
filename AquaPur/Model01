@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Aquagener Pruritus &amp; Beta-Alanin: Biophysikalisches Modell</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: {
+        brandDark: '#090d16', cardDark: '#111827', borderDark: '#1f2937',
+        accentBlue: '#38bdf8', accentGreen: '#10b981', accentRed: '#ef4444',
+        accentPurple: '#a855f7', accentYellow: '#f59e0b'
+      } } }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: #090d16; color: #f3f4f6; overflow-x: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #374151; }
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
+      border-radius: 3px; background: #1f2937; outline: none; cursor: pointer; touch-action: pan-x;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: #38bdf8; border: 2px solid #ffffff; cursor: pointer; transition: transform 0.1s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    canvas { touch-action: none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col p-2 sm:p-4 md:p-6 gap-4 text-slate-100">
+
+  <div class="max-w-7xl w-full mx-auto flex flex-col gap-4">
+
+    <!-- HEADER & TABS -->
+    <header class="bg-cardDark border border-borderDark rounded-xl p-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-xl">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">Aquagener Pruritus &amp; Beta-Alanin: Biophysikalisches Modell</h1>
+          <p class="text-xs text-slate-400">Dosiswirkungs-Modellierung &bull; Signalausbreitung, Einzelparameter &amp; Gewebeknoten</p>
+        </div>
+      </div>
+      <nav class="flex flex-wrap items-center bg-slate-900/80 p-1 rounded-lg border border-borderDark w-full lg:w-auto">
+        <button id="tab-btn-1" onclick="switchTab(1)" class="flex-1 lg:flex-initial px-3 py-1.5 text-xs font-semibold rounded-md transition-all text-accentBlue bg-slate-800 border border-slate-700">Graph 1: Signalausbreitung</button>
+        <button id="tab-btn-2" onclick="switchTab(2)" class="flex-1 lg:flex-initial px-3 py-1.5 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-slate-200">Graph 2: Einzelparameter</button>
+        <button id="tab-btn-3" onclick="switchTab(3)" class="flex-1 lg:flex-initial px-3 py-1.5 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-slate-200">Knotenvergleich (Bar)</button>
+      </nav>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+      <!-- SIDEBAR -->
+      <aside class="lg:col-span-4 flex flex-col gap-4">
+
+        <div class="bg-cardDark border border-borderDark rounded-xl p-4 flex flex-col gap-3 shadow-lg">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-accentYellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Szenario Quick-Presets
+          </h2>
+          <div class="grid grid-cols-1 gap-2">
+            <button onclick="applyPreset('untreated')" class="w-full text-left p-2.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-semibold flex items-center justify-between transition-colors">
+              <span>1. Aquagener Pruritus (OHNE β-Alanin)</span><span>&rarr;</span>
+            </button>
+            <button onclick="applyPreset('dose15')" class="w-full text-left p-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold flex items-center justify-between transition-colors">
+              <span>2. β-Alanin (15 Min VOR Wasserkontakt)</span><span>&rarr;</span>
+            </button>
+            <button onclick="applyPreset('dose30')" class="w-full text-left p-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold flex items-center justify-between transition-colors">
+              <span>3. β-Alanin (30 Min VOR Wasserkontakt)</span><span>&rarr;</span>
+            </button>
+            <button onclick="applyPreset('tooEarly')" class="w-full text-left p-2.5 rounded-lg border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs font-semibold flex items-center justify-between transition-colors">
+              <span>4. Zu frühe Einnahme (-55 Min VOR Wasser)</span><span>&rarr;</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-cardDark border border-borderDark rounded-xl p-4 flex flex-col gap-4 shadow-lg">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-accentBlue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+            </svg>
+            Modell-Parameter &amp; Timing
+          </h2>
+
+          <div class="bg-slate-900 p-3 rounded-lg border border-borderDark flex flex-col gap-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-300">Vergleichsmodus</span>
+              <span id="mode-badge" class="font-mono font-bold text-accentBlue">Beide Kurven</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1 mt-1">
+              <button id="btn-mode-both" onclick="setMode('both')" class="px-2 py-1.5 rounded text-xs font-semibold bg-accentBlue/20 border border-accentBlue text-accentBlue">Beide</button>
+              <button id="btn-mode-without" onclick="setMode('without')" class="px-2 py-1.5 rounded text-xs font-semibold bg-slate-800 border border-slate-700 text-slate-400">Ohne β-A</button>
+              <button id="btn-mode-with" onclick="setMode('with')" class="px-2 py-1.5 rounded text-xs font-semibold bg-slate-800 border border-slate-700 text-slate-400">Mit β-A</button>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 p-3 rounded-lg border border-borderDark flex flex-col gap-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-300">Menge an eingenommenem β-Alanin</span>
+              <span id="val-dose-gram" class="font-mono font-bold text-emerald-400">3.2 g</span>
+            </div>
+            <input type="range" id="input-dose-gram" min="0.0" max="6.0" step="0.2" value="3.2" oninput="onManualParamChange()">
+            <span class="text-[10px] text-slate-500">Steuert Dämpfungskapazität (sättigend) &amp; MrgprD-/Glutamat-Ausschlag</span>
+          </div>
+
+          <div class="bg-slate-900 p-3 rounded-lg border border-borderDark flex flex-col gap-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-300">β-Alanin Einnahme (t<sub>Einnahme</sub>)</span>
+              <span id="val-t-dose" class="font-mono font-bold text-accentPurple">-15 min</span>
+            </div>
+            <input type="range" id="input-t-dose" min="-60" max="-5" step="1" value="-15" oninput="onManualParamChange()">
+          </div>
+
+          <div class="bg-slate-900 p-3 rounded-lg border border-borderDark flex flex-col gap-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-300">Wasserkontakt-Dauer</span>
+              <span id="val-duration" class="font-mono font-bold text-accentBlue">30 min</span>
+            </div>
+            <input type="range" id="input-duration" min="5" max="45" step="5" value="30" oninput="onManualParamChange()">
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN -->
+      <main class="lg:col-span-8 flex flex-col gap-4">
+
+        <div class="bg-cardDark border border-borderDark rounded-xl p-4 flex flex-col gap-3 shadow-xl">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-borderDark/60 pb-3">
+            <div>
+              <h2 id="view-title" class="text-sm sm:text-base font-bold text-white">Graph 1: Prurizeptive Signalausbreitung</h2>
+              <p id="view-subtitle" class="text-xs text-slate-400">Vergleich der prurizeptiven Gesamterregung im Hinterhorn (t = -30 bis +45 min)</p>
+            </div>
+            <div class="bg-slate-900 border border-borderDark rounded-lg px-3 py-1.5 flex items-center gap-3 text-xs font-mono">
+              <span>Zeitpunkt t: <strong id="header-t-val" class="text-accentBlue">+4.0 min</strong></span>
+              <span class="text-slate-700">|</span>
+              <span>Signal (MIT β-A): <strong id="header-signal-val" class="text-emerald-400">-- a.u.</strong></span>
+            </div>
+          </div>
+
+          <div class="relative w-full h-[380px] bg-[#060911] border border-borderDark rounded-lg overflow-hidden">
+            <canvas id="mainCanvas" class="w-full h-full block"></canvas>
+          </div>
+
+          <div id="legend-bar" class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 pt-1"></div>
+        </div>
+
+        <!-- PUNKT-INSPEKTOR -->
+        <div class="bg-cardDark border border-borderDark rounded-xl p-4 flex flex-col gap-3 shadow-xl">
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-borderDark/60">
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <svg class="w-4 h-4 text-accentBlue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+              Punkt-Inspektor: Kennzahlen zum gewählten Zeitpunkt
+            </div>
+            <div class="flex items-center gap-3 bg-slate-900 px-3 py-1 rounded-lg border border-borderDark">
+              <label for="time-scrubber" class="text-xs text-slate-400">Zeitpunkt t:</label>
+              <input type="range" id="time-scrubber" min="-30" max="45" step="0.5" value="4.0" class="w-32 sm:w-44" oninput="onScrubberInput()">
+              <span id="scrubber-val" class="font-mono font-bold text-accentBlue text-xs w-16 text-right">+4.0 min</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
+            <div class="bg-slate-900 border border-borderDark rounded-lg p-2.5 flex flex-col gap-1">
+              <span class="text-[10px] text-slate-400 font-medium">TRP / Ca²⁺ Einstrom</span>
+              <span id="m-trp" class="font-mono font-bold text-sm text-cyan-400">--</span>
+              <span class="text-[9px] text-slate-500">TRPV4, TRPV1/3</span>
+            </div>
+            <div class="bg-slate-900 border border-borderDark rounded-lg p-2.5 flex flex-col gap-1">
+              <span class="text-[10px] text-slate-400 font-medium">Keratinozyten ATP</span>
+              <span id="m-atp" class="font-mono font-bold text-sm text-yellow-400">--</span>
+              <span class="text-[9px] text-slate-500">Parakrine P2X/P2Y</span>
+            </div>
+            <div class="bg-slate-900 border border-borderDark rounded-lg p-2.5 flex flex-col gap-1">
+              <span class="text-[10px] text-slate-400 font-medium">MrgprD / TRPA1</span>
+              <span id="m-mrgpr" class="font-mono font-bold text-sm text-purple-400">--</span>
+              <span class="text-[9px] text-slate-500">β-Alanin Afferenz</span>
+            </div>
+            <div class="bg-slate-900 border border-borderDark rounded-lg p-2.5 flex flex-col gap-1">
+              <span class="text-[10px] text-slate-400 font-medium">Lokales Glutamat</span>
+              <span id="m-glut" class="font-mono font-bold text-sm text-emerald-400">--</span>
+              <span class="text-[9px] text-slate-500">Parakrin in Haut</span>
+            </div>
+            <div class="bg-slate-900 border border-borderDark rounded-lg p-2.5 flex flex-col gap-1">
+              <span class="text-[10px] text-slate-400 font-medium">Mastzell-Aktivität</span>
+              <span id="m-mast" class="font-mono font-bold text-sm text-amber-500">--</span>
+              <span class="text-[9px] text-slate-500">Degranulation</span>
+            </div>
+            <div class="bg-slate-900 border border-borderDark rounded-lg p-2.5 flex flex-col gap-1">
+              <span class="text-[10px] text-slate-400 font-medium">Spinale Signalstärke</span>
+              <span id="m-spinal" class="font-mono font-bold text-sm text-red-400">--</span>
+              <span class="text-[9px] text-slate-500">Hinterhorn (a.u.)</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let canvas, ctx;
+    let activeTab = 1;          // 1: Signalausbreitung, 2: Einzelparameter, 3: Knotenvergleich
+    let activePreset = 'dose15'; // 'untreated', 'dose15', 'dose30', 'tooEarly', 'custom'
+    let currentMode = 'both';    // 'both', 'without', 'with'
+    let selectedT = 4.0;
+    const pointerState = { active: false };
+
+    let simTime = [];
+    let simData = {};
+
+    const padL = 64, padR = 24, padT = 36, padB = 42;
+    const tMin = -30.0, tMax = 45.0, yMin = 0.0, yMax = 110.0;
+    const WINDOW_PEAK = 18.0; // Minuten nach Einnahme bis zum Wirkmaximum
+
+    window.addEventListener('DOMContentLoaded', () => {
+      canvas = $('mainCanvas');
+      ctx = canvas.getContext('2d');
+      window.addEventListener('resize', resizeCanvas);
+      canvas.addEventListener('pointerdown', handlePointerDown);
+      canvas.addEventListener('pointermove', handlePointerMove);
+      canvas.addEventListener('pointerup', () => { pointerState.active = false; });
+      canvas.addEventListener('pointerleave', () => { pointerState.active = false; });
+      canvas.addEventListener('touchstart', handleTouchMove, { passive: false });
+      canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+      runSimulation();
+      resizeCanvas();
+      updateLegend();
+      updateInspectorReadout();
+    });
+
+    // ---------- NAVIGATION ----------
+    function switchTab(tabId) {
+      activeTab = tabId;
+      [1, 2, 3].forEach(i => {
+        $('tab-btn-' + i).className = 'flex-1 lg:flex-initial px-3 py-1.5 text-xs font-semibold rounded-md transition-all ' +
+          (i === tabId ? 'text-accentBlue bg-slate-800 border border-slate-700' : 'text-slate-400 hover:text-slate-200');
+      });
+      const titles = [
+        ['Graph 1: Prurizeptive Signalausbreitung', 'Vergleich der prurizeptiven Gesamterregung im Hinterhorn (t = -30 bis +45 min)'],
+        ['Graph 2: Einzelne Signal- und Gewebeparameter im Zeitverlauf', 'Verlauf von TRP, ATP, MrgprD, lokalem Glutamat und Mastzell-Aktivität'],
+        ['Knotenvergleich (Bar): Erregungszustände an den Signalstufen', 'Gegenüberstellung der physiologischen Knotenpunkte zum gewählten Zeitpunkt t']
+      ];
+      $('view-title').innerText = titles[tabId - 1][0];
+      $('view-subtitle').innerText = titles[tabId - 1][1];
+      updateLegend();
+      drawCanvas();
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      const base = 'px-2 py-1.5 rounded text-xs font-semibold ';
+      const off = 'bg-slate-800 border border-slate-700 text-slate-400';
+      $('btn-mode-both').className = base + (mode === 'both' ? 'bg-accentBlue/20 border border-accentBlue text-accentBlue' : off);
+      $('btn-mode-without').className = base + (mode === 'without' ? 'bg-red-500/20 border border-red-500 text-red-400' : off);
+      $('btn-mode-with').className = base + (mode === 'with' ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-400' : off);
+      $('mode-badge').innerText = mode === 'both' ? 'Beide Kurven' : (mode === 'without' ? 'Nur OHNE β-Alanin' : 'Nur MIT β-Alanin');
+      drawCanvas();
+      updateInspectorReadout();
+    }
+
+    function applyPreset(key) {
+      activePreset = key;
+      const presets = {
+        untreated: { mode: 'without', t: -15, dose: 0.0 },
+        dose15:    { mode: 'both',    t: -15, dose: 3.2 },
+        dose30:    { mode: 'both',    t: -30, dose: 3.2 },
+        tooEarly:  { mode: 'both',    t: -55, dose: 3.2 }
+      };
+      const p = presets[key];
+      setMode(p.mode);
+      $('input-t-dose').value = p.t;
+      $('input-dose-gram').value = p.dose;
+      $('input-duration').value = 30;
+      updateModel();
+    }
+
+    function onManualParamChange() {
+      activePreset = 'custom';
+      updateModel();
+    }
+
+    // ---------- MODELL ----------
+    // Zeitliches Wirkfenster nach Einnahme: Anstieg (τ = 6 min), Maximum bei WINDOW_PEAK, danach Abfall (τ = 22 min)
+    function timeWindow(e) {
+      if (e < 0) return 0;
+      const buildUp = 1 - Math.exp(-e / 6.0);
+      const decay = Math.exp(-Math.max(0, e - WINDOW_PEAK) / 22.0);
+      return buildUp * decay;
+    }
+
+    // Dämpfungsfaktor D(t): sättigende Dosisabhängigkeit (max. 82 %) mal Wirkfenster
+    function computeDampingFactor(t, t_dose, dose_g) {
+      if (dose_g <= 0) return 0;
+      const damp_capacity = (1 - Math.exp(-dose_g / 2.0)) * 0.82;
+      return damp_capacity * timeWindow(t - t_dose);
+    }
+
+    // Glatte Pulsfunktion, Spitze = amplitude
+    function smoothPulse(dt, riseTau, decayTau, amplitude) {
+      if (dt <= 0) return 0;
+      const raw = (1 - Math.exp(-dt / riseTau)) * Math.exp(-dt / decayTau);
+      const tPeak = riseTau * Math.log((riseTau + decayTau) / riseTau);
+      const norm = (1 - Math.exp(-tPeak / riseTau)) * Math.exp(-tPeak / decayTau);
+      return amplitude * (raw / (norm || 1));
+    }
+
+    function runSimulation() {
+      const t_dose = parseFloat($('input-t-dose').value);
+      const dose_g = parseFloat($('input-dose-gram').value);
+      const waterDuration = parseFloat($('input-duration').value);
+
+      $('val-t-dose').innerText = `${t_dose} min`;
+      $('val-dose-gram').innerText = `${dose_g.toFixed(1)} g`;
+      $('val-duration').innerText = `${waterDuration} min`;
+
+      simTime = [];
+      simData = { spinal_without: [], spinal_with: [], healthy: [], trp: [], atp: [], mrgpr: [], glut: [], mast: [] };
+
+      const steps = 300;
+      const dt = (tMax - tMin) / steps;
+      const durFactor = waterDuration / 30.0;
+      const doseScale = dose_g / 3.2;
+
+      // Anteil der schnellen Rückbildung: hängt vom Wirkfenster zu Wasserbeginn (t = 0) und der Dosis ab
+      const damp_cap = (1 - Math.exp(-dose_g / 2.0)) * 0.82;
+      const fastShare = dose_g > 0
+        ? Math.min(1, timeWindow(-t_dose) / timeWindow(WINDOW_PEAK)) * (damp_cap / 0.82)
+        : 0;
+
+      for (let i = 0; i <= steps; i++) {
+        const t = tMin + i * dt;
+        const elapsed = t - t_dose;
+        simTime.push(t);
+
+        const damp = computeDampingFactor(t, t_dose, dose_g);
+        const slow = smoothPulse(t, 1.6, 28.0 * durFactor, 72.0);
+
+        // Spinal ohne β-Alanin (unbehandelte Referenz)
+        const y_without = 22.0 + slow;
+
+        // Spinal mit β-Alanin
+        let y_with = y_without;
+        if (dose_g > 0 && elapsed >= 0) {
+          const fast = smoothPulse(t, 1.6, 9.0 * durFactor, 72.0);
+          const paresthesia = smoothPulse(elapsed, 1.4, 3.0, 9.5 * doseScale);
+          const dip = -7.0 * Math.exp(-elapsed / 3.5) * doseScale;
+          const surge = ((1 - fastShare) * slow + fastShare * fast) * (1.0 - damp);
+          y_with = Math.max(22.0, 22.0 + dip + paresthesia + surge);
+        }
+
+        simData.healthy.push(15.0 + smoothPulse(t, 1.8, 6.0 * durFactor, 7.0));
+        simData.trp.push(smoothPulse(t, 1.5, 18.0 * durFactor, 85.0));
+        simData.atp.push(smoothPulse(t - 0.4, 2.0, 16.0 * durFactor, 68.0));
+        simData.mrgpr.push(smoothPulse(elapsed, 1.8, 4.0, 64.0 * doseScale));
+        simData.glut.push(smoothPulse(elapsed, 2.8, 22.0, 66.0 * doseScale));
+        simData.mast.push(Math.max(0, smoothPulse(t, 2.0, 14.0 * durFactor, 76.0) * (1.0 - damp)));
+        simData.spinal_without.push(y_without);
+        simData.spinal_with.push(y_with);
+      }
+    }
+
+    function updateModel() {
+      runSimulation();
+      drawCanvas();
+      updateLegend();
+      updateInspectorReadout();
+    }
+
+    // ---------- ZEICHNEN ----------
+    function resizeCanvas() {
+      if (!canvas) return;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawCanvas();
+    }
+
+    function drawCanvas() {
+      if (!canvas || !ctx) return;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      if (activeTab === 1) drawGraph1(rect.width, rect.height);
+      else if (activeTab === 2) drawGraph2(rect.width, rect.height);
+      else drawBarChart(rect.width, rect.height);
+    }
+
+    function line(x1, y1, x2, y2) {
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+
+    // Gemeinsame Achsen, Gitter und Beschriftungen
+    function drawAxes(W, H, withX) {
+      const gW = W - padL - padR, gH = H - padT - padB;
+      const mapX = v => padL + ((v - tMin) / (tMax - tMin)) * gW;
+      const mapY = v => padT + gH - ((v - yMin) / (yMax - yMin)) * gH;
+
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      ctx.font = '11px -apple-system, sans-serif';
+
+      for (let y = 0; y <= 100; y += 20) {
+        const py = mapY(y);
+        line(padL, py, W - padR, py);
+        ctx.fillStyle = '#64748b'; ctx.textAlign = 'right';
+        ctx.fillText(y.toString(), padL - 8, py + 4);
+      }
+      if (withX) {
+        for (let x = -30; x <= 45; x += 15) {
+          const px = mapX(x);
+          line(px, padT, px, H - padB);
+          ctx.fillStyle = '#64748b'; ctx.textAlign = 'center';
+          ctx.fillText(`${x >= 0 ? '+' : ''}${x}`, px, H - padB + 16);
+        }
+        ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center';
+        ctx.fillText('Zeit relativ zum Wasserkontakt (Minuten)', padL + gW / 2, H - 8);
+      }
+      ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'left';
+      ctx.fillText('Erregungsintensität (a.u.)', padL - 54, padT - 12);
+      return { gW, gH, mapX, mapY };
+    }
+
+    function vLine(x, color, dash, H) {
+      ctx.strokeStyle = color;
+      ctx.setLineDash(dash);
+      line(x, padT, x, H - padB);
+      ctx.setLineDash([]);
+    }
+
+    function drawSeries(arr, color, width, mapX, mapY, dashed = false) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = width;
+      if (dashed) ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      for (let i = 0; i < simTime.length; i++) {
+        const px = mapX(simTime[i]), py = mapY(arr[i]);
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawDot(x, y, color, r, outline) {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      if (outline) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke(); }
+    }
+
+    // TAB 1
+    function drawGraph1(W, H) {
+      const { mapX, mapY } = drawAxes(W, H, true);
+      const tDose = parseFloat($('input-t-dose').value);
+      const xZero = mapX(0);
+
+      vLine(xZero, 'rgba(56, 189, 248, 0.45)', [4, 4], H);
+      ctx.fillStyle = '#38bdf8'; ctx.textAlign = 'left';
+      ctx.fillText('Wasser (t=0)', xZero + 5, padT + 12);
+
+      if (currentMode !== 'without' && tDose >= tMin) {
+        const xDose = mapX(tDose);
+        vLine(xDose, 'rgba(168, 85, 247, 0.45)', [3, 3], H);
+        ctx.fillStyle = '#a855f7'; ctx.textAlign = 'right';
+        ctx.fillText(`Einnahme (${tDose}m)`, xDose - 5, padT + 24);
+      }
+
+      drawSeries(simData.healthy, '#9ca3af', 1.8, mapX, mapY, true);
+      if (currentMode !== 'with') drawSeries(simData.spinal_without, '#ef4444', 2.6, mapX, mapY);
+      if (currentMode !== 'without') drawSeries(simData.spinal_with, '#10b981', 2.6, mapX, mapY);
+
+      const xSel = mapX(selectedT), idx = getIndexForT(selectedT);
+      drawDot(xSel, mapY(simData.healthy[idx]), '#9ca3af', 4.5, true);
+      if (currentMode !== 'with') drawDot(xSel, mapY(simData.spinal_without[idx]), '#ef4444', 4.5, true);
+      if (currentMode !== 'without') drawDot(xSel, mapY(simData.spinal_with[idx]), '#10b981', 4.5, true);
+    }
+
+    // TAB 2
+    function drawGraph2(W, H) {
+      const { mapX, mapY } = drawAxes(W, H, true);
+      const tDose = parseFloat($('input-t-dose').value);
+
+      vLine(mapX(0), 'rgba(56, 189, 248, 0.45)', [4, 4], H);
+      if (tDose >= tMin) vLine(mapX(tDose), 'rgba(168, 85, 247, 0.45)', [3, 3], H);
+
+      const series = [
+        [simData.trp, '#22d3ee'], [simData.atp, '#facc15'], [simData.mrgpr, '#c084fc'],
+        [simData.glut, '#34d399'], [simData.mast, '#f97316']
+      ];
+      series.forEach(([arr, color]) => drawSeries(arr, color, 2.0, mapX, mapY));
+
+      const xSel = mapX(selectedT), idx = getIndexForT(selectedT);
+      series.forEach(([arr, color]) => drawDot(xSel, mapY(arr[idx]), color, 4, false));
+    }
+
+    // TAB 3
+    function drawBarChart(W, H) {
+      const { gW, gH, mapY } = drawAxes(W, H, false);
+      const idx = getIndexForT(selectedT);
+      const t_dose = parseFloat($('input-t-dose').value);
+      const dose_g = parseFloat($('input-dose-gram').value);
+
+      // Szenario-Logik:
+      // - ohne β-Alanin: MIT-Balken = 0
+      // - vor der Einnahme: beide Balken identisch (kein β-Alanin im System)
+      // - nach der Einnahme: MIT-Balken = Wert aus Graph 1, OHNE-Balken = Referenz
+      const noBA = (activePreset === 'untreated') || (dose_g <= 0);
+      const taken = selectedT >= t_dose;
+      const valWithout = simData.spinal_without[idx];
+      let valWith = simData.spinal_with[idx];
+      let withoutLabel = 'Pruritus (OHNE)';
+
+      if (noBA) {
+        valWith = 0;
+      } else if (!taken) {
+        valWith = valWithout;
+      } else {
+        withoutLabel = 'Pruritus (Ref. ohne)';
+        valWith = currentMode === 'without' ? 0 : simData.spinal_with[idx];
+      }
+
+      const categories = [
+        { name: 'TRP / Ca²⁺', val: simData.trp[idx], color: '#22d3ee' },
+        { name: 'Keratinozyt ATP', val: simData.atp[idx], color: '#facc15' },
+        { name: 'MrgprD / TRPA1', val: simData.mrgpr[idx], color: '#c084fc' },
+        { name: 'Lok. Glutamat', val: simData.glut[idx], color: '#34d399' },
+        { name: 'Mastzellausschüttung', val: simData.mast[idx], color: '#f97316' },
+        { name: withoutLabel, val: valWithout, color: '#ef4444' },
+        { name: 'Pruritus (MIT)', val: valWith, color: '#10b981' }
+      ];
+
+      const slotW = gW / categories.length;
+      const barW = Math.min(36, slotW * 0.55);
+
+      categories.forEach((cat, i) => {
+        const slotX = padL + i * slotW + slotW / 2;
+        const barX = slotX - barW / 2;
+        const barY = mapY(cat.val);
+        const barH = Math.max(0, (padT + gH) - barY);
+
+        const grad = ctx.createLinearGradient(0, barY, 0, barY + barH);
+        grad.addColorStop(0, cat.color);
+        grad.addColorStop(1, 'rgba(15, 23, 42, 0.4)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        if (barH > 0) ctx.roundRect(barX, barY, barW, barH, [4, 4, 0, 0]);
+        else ctx.rect(barX, padT + gH, barW, 0);
+        ctx.fill();
+        if (barH > 0) { ctx.strokeStyle = cat.color; ctx.lineWidth = 1; ctx.stroke(); }
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px -apple-system, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(cat.val.toFixed(1), slotX, Math.max(padT + 10, barY - 6));
+
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = '10px -apple-system, sans-serif';
+        ctx.fillText(cat.name, slotX, H - padB + 16);
+      });
+    }
+
+    function getIndexForT(tVal) {
+      let closest = 0, minDiff = Infinity;
+      for (let i = 0; i < simTime.length; i++) {
+        const diff = Math.abs(simTime[i] - tVal);
+        if (diff < minDiff) { minDiff = diff; closest = i; }
+      }
+      return closest;
+    }
+
+    // ---------- LEGENDE ----------
+    function updateLegend() {
+      const bar = $('legend-bar');
+      if (activeTab === 1) {
+        bar.innerHTML = `
+          <div class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center gap-2" style="opacity: ${currentMode === 'with' ? '0.3' : '1'}">
+              <div class="w-4 h-1 rounded bg-accentRed"></div><span>Pruritus (OHNE β-Alanin)</span>
+            </div>
+            <div class="flex items-center gap-2" style="opacity: ${currentMode === 'without' ? '0.3' : '1'}">
+              <div class="w-4 h-1 rounded bg-accentGreen"></div><span>Pruritus (MIT β-Alanin)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-[2px] border-b border-dashed border-slate-400"></div><span>Gesunde Kontrolle</span>
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-500">Maus, Pen oder Finger über den Graphen bewegen</div>`;
+      } else if (activeTab === 2) {
+        bar.innerHTML = `
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full bg-cyan-400"></div><span>TRP/Ca²⁺</span></div>
+            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full bg-yellow-400"></div><span>ATP</span></div>
+            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full bg-purple-400"></div><span>MrgprD/TRPA1</span></div>
+            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full bg-emerald-400"></div><span>Lok. Glutamat</span></div>
+            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full bg-amber-500"></div><span>Mastzell-Aktivität</span></div>
+          </div>`;
+      } else {
+        const t_dose = parseFloat($('input-t-dose').value);
+        const dose_g = parseFloat($('input-dose-gram').value);
+        const status = (activePreset === 'untreated' || dose_g <= 0)
+          ? 'Ohne β-Alanin (MIT = 0.0)'
+          : `Einnahme bei ${t_dose} min (${dose_g.toFixed(1)} g) | t = ${selectedT >= 0 ? '+' : ''}${selectedT.toFixed(1)} min`;
+        bar.innerHTML = `<div class="text-xs text-slate-400">${status} (Steuerung über Quick-Presets, Parameter &amp; Zeitregler)</div>`;
+      }
+    }
+
+    // ---------- EINGABE ----------
+    function setTFromCanvasX(clientX) {
+      if (activeTab === 3) return; // Balkenansicht: Mausbewegung ändert den Zeitpunkt nicht
+      const rect = canvas.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left - padL) / (rect.width - padL - padR)));
+      selectedT = Math.round((tMin + ratio * (tMax - tMin)) * 2) / 2.0;
+      $('time-scrubber').value = selectedT;
+      drawCanvas();
+      updateLegend();
+      updateInspectorReadout();
+    }
+
+    function handlePointerDown(e) {
+      if (activeTab === 3) return;
+      pointerState.active = true;
+      canvas.setPointerCapture(e.pointerId);
+      setTFromCanvasX(e.clientX);
+    }
+
+    function handlePointerMove(e) {
+      if (activeTab === 3) return;
+      if (pointerState.active || e.pointerType === 'mouse') setTFromCanvasX(e.clientX);
+    }
+
+    function handleTouchMove(e) {
+      if (activeTab === 3) return;
+      if (e.touches && e.touches.length > 0) setTFromCanvasX(e.touches[0].clientX);
+    }
+
+    function onScrubberInput() {
+      selectedT = parseFloat($('time-scrubber').value);
+      drawCanvas();
+      updateLegend();
+      updateInspectorReadout();
+    }
+
+    // ---------- PUNKT-INSPEKTOR ----------
+    function updateInspectorReadout() {
+      const formattedT = `${selectedT >= 0 ? '+' : ''}${selectedT.toFixed(1)} min`;
+      $('header-t-val').innerText = formattedT;
+      $('scrubber-val').innerText = formattedT;
+
+      const idx = getIndexForT(selectedT);
+      const valSpinal = currentMode === 'without' ? simData.spinal_without[idx] : simData.spinal_with[idx];
+
+      $('header-signal-val').innerText = (currentMode !== 'without') ? `${simData.spinal_with[idx].toFixed(1)} a.u.` : '-- a.u.';
+      $('m-trp').innerText = `${simData.trp[idx].toFixed(1)} a.u.`;
+      $('m-atp').innerText = `${simData.atp[idx].toFixed(1)} a.u.`;
+      $('m-mrgpr').innerText = `${simData.mrgpr[idx].toFixed(1)} a.u.`;
+      $('m-glut').innerText = `${simData.glut[idx].toFixed(1)} a.u.`;
+      $('m-mast').innerText = `${simData.mast[idx].toFixed(1)} a.u.`;
+      $('m-spinal').innerText = `${valSpinal.toFixed(1)} a.u.`;
+    }
+  </script>
+</body>
+</html>
