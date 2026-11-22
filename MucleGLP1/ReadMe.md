@@ -1,1 +1,1 @@
-text
+A physiological glucose-insulin model built from published study values separates the effects of GLP-1 receptor agonists into fat loss, muscle loss and direct drug actions. Skeletal muscle is the main insulin-dependent glucose sink, so the muscle lost under GLP-1 gives back 8–12 % of the glucose-lowering effect, most of all in prediabetes. Fat loss still dominates, and combining GLP-1 with resistance training to preserve muscle works best.
