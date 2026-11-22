@@ -2,7 +2,8 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>3D-Lehrvideo: Malignes Melanom, mRNA &amp; PD-1-Blockade</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Lehrvideo-3D: Malignes Melanom, mRNA &amp; PD-1-Blockade</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -13,29 +14,26 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      height: 100dvh;
+      -webkit-tap-highlight-color: transparent;
     }
     #top-bar {
       background: rgba(10, 16, 30, 0.95);
       border-bottom: 1px solid #1e293b;
-      padding: 10px 18px;
+      padding: 10px 16px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
       z-index: 20;
+      flex-shrink: 0;
     }
     h1 {
-      font-size: 16px;
+      font-size: clamp(14px, 2.2vw, 17px);
       color: #38bdf8;
       font-weight: 700;
       letter-spacing: 0.2px;
-    }
-    .right-group {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
     }
     .controls {
       display: flex;
@@ -43,35 +41,8 @@
       gap: 6px;
       align-items: center;
     }
-    .lang-switch {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 3px;
-    }
-    .lang-btn {
-      padding: 5px 9px;
-      font-size: 11.5px;
-      font-weight: 700;
-      border: none;
-      border-radius: 6px;
-      background: transparent;
-      color: #cbd5e1;
-      cursor: pointer;
-    }
-    .lang-btn:hover {
-      background: #1e293b;
-      color: #ffffff;
-    }
-    .lang-btn.active {
-      background: #38bdf8;
-      color: #060911;
-    }
-    button.phase-btn, button.secondary {
-      padding: 8px 11px;
+    button {
+      padding: 7px 11px;
       font-size: 12px;
       font-weight: 600;
       border: 1px solid #334155;
@@ -80,12 +51,13 @@
       color: #e2e8f0;
       cursor: pointer;
       transition: background 0.2s, border-color 0.2s;
+      touch-action: manipulation;
     }
-    button.phase-btn:hover, button.secondary:hover {
+    button:hover {
       background: #334155;
       border-color: #38bdf8;
     }
-    button.phase-btn.active, button.secondary.active {
+    button.active {
       background: #0284c7;
       border-color: #7dd3fc;
       color: #ffffff;
@@ -95,13 +67,17 @@
       border-color: #475569;
       color: #bae6fd;
     }
+    #btn-legend {
+      display: none;
+    }
     #canvas-container {
       flex: 1;
       position: relative;
       width: 100%;
-      height: 100%;
+      min-height: 0;
       overflow: hidden;
       cursor: grab;
+      touch-action: none;
     }
     #canvas-container:active {
       cursor: grabbing;
@@ -111,39 +87,42 @@
       inset: 0;
       pointer-events: none;
       z-index: 10;
+      overflow: hidden;
     }
     .label-3d {
       position: absolute;
       transform: translate(-50%, -125%);
-      background: rgba(10, 16, 30, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(10, 16, 30, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.55);
       color: #f8fafc;
-      padding: 4px 9px;
+      padding: 4px 8px;
       border-radius: 6px;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 600;
       white-space: nowrap;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+      transition: opacity 0.12s ease;
     }
     .label-3d.hidden-label {
-      display: none;
+      display: none !important;
     }
     #timeline-box {
       position: absolute;
-      top: 14px;
-      left: 18px;
+      top: 12px;
+      left: 14px;
       background: rgba(10, 16, 30, 0.92);
       border: 1px solid #334155;
       border-radius: 12px;
-      padding: 12px 15px;
-      width: 345px;
+      padding: 11px 14px;
+      width: 330px;
+      max-width: calc(100vw - 28px);
       z-index: 15;
     }
     .badge-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
       gap: 8px;
     }
     #time-badge {
@@ -151,113 +130,185 @@
       background: rgba(56, 189, 248, 0.16);
       border: 1px solid #38bdf8;
       color: #7dd3fc;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 700;
       padding: 2px 8px;
       border-radius: 999px;
     }
     #video-timer {
-      font-size: 11.5px;
+      font-size: 11px;
       color: #94a3b8;
       font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
     }
     #time-note {
-      font-size: 12px;
+      font-size: 11.5px;
       color: #cbd5e1;
-      line-height: 1.4;
-      margin-bottom: 8px;
+      line-height: 1.38;
+      margin-bottom: 7px;
     }
     input[type="range"] {
       width: 100%;
       accent-color: #38bdf8;
       cursor: pointer;
+      height: 22px;
     }
     .scrubber-marks {
       display: flex;
       justify-content: space-between;
-      font-size: 10.5px;
+      font-size: 10px;
       color: #94a3b8;
-      margin-top: 3px;
+      margin-top: 1px;
     }
     #legend {
       position: absolute;
-      top: 14px;
-      right: 18px;
+      top: 12px;
+      right: 14px;
       background: rgba(10, 16, 30, 0.92);
       border: 1px solid #334155;
       border-radius: 12px;
-      padding: 12px 15px;
-      font-size: 12px;
+      padding: 11px 14px;
+      font-size: 11.5px;
       z-index: 15;
+      max-width: 270px;
     }
     .legend-item {
       display: flex;
       align-items: center;
       margin-bottom: 5px;
+      line-height: 1.25;
     }
     .legend-item:last-child { margin-bottom: 0; }
     .dot {
-      width: 11px;
-      height: 11px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       margin-right: 8px;
       flex-shrink: 0;
     }
     #info-card {
       position: absolute;
-      bottom: 18px;
-      left: 18px;
-      max-width: 500px;
-      background: rgba(10, 16, 30, 0.93);
+      bottom: 14px;
+      left: 14px;
+      max-width: 470px;
+      background: rgba(10, 16, 30, 0.94);
       border: 1px solid #334155;
       border-left: 4px solid #38bdf8;
       border-radius: 12px;
-      padding: 15px 18px;
+      padding: 13px 16px;
       z-index: 15;
     }
     #info-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
       color: #38bdf8;
     }
     #info-text {
-      font-size: 13.5px;
-      line-height: 1.52;
+      font-size: 12.5px;
+      line-height: 1.48;
       color: #e2e8f0;
     }
     #hint {
       position: absolute;
-      bottom: 18px;
-      right: 18px;
-      font-size: 11.5px;
+      bottom: 14px;
+      right: 14px;
+      font-size: 11px;
       color: #94a3b8;
-      background: rgba(10, 16, 30, 0.85);
-      padding: 6px 12px;
+      background: rgba(10, 16, 30, 0.88);
+      border: 1px solid rgba(51, 65, 85, 0.6);
+      padding: 6px 11px;
       border-radius: 8px;
       z-index: 15;
+    }
+
+    /* Smartphone- & Tablet-Optimierung */
+    @media (max-width: 768px) {
+      #top-bar {
+        padding: 8px 10px;
+        gap: 6px;
+      }
+      .controls {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+      }
+      button {
+        padding: 7px 6px;
+        font-size: 11px;
+        border-radius: 7px;
+        text-align: center;
+      }
+      #btn-legend {
+        display: inline-block;
+      }
+      .label-3d {
+        font-size: 10px;
+        padding: 2.5px 6px;
+        border-radius: 5px;
+      }
+      #timeline-box {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        width: auto;
+        max-width: none;
+        padding: 8px 11px;
+        border-radius: 10px;
+      }
+      #time-note {
+        font-size: 11px;
+        margin-bottom: 4px;
+      }
+      #legend {
+        display: none;
+        top: 104px;
+        right: 8px;
+        left: 8px;
+        max-width: none;
+        font-size: 11px;
+        padding: 9px 12px;
+      }
+      #legend.open-mobile {
+        display: block;
+      }
+      #info-card {
+        bottom: calc(8px + env(safe-area-inset-bottom));
+        left: 8px;
+        right: 8px;
+        max-width: none;
+        max-height: 28vh;
+        overflow-y: auto;
+        padding: 10px 12px;
+        border-radius: 10px;
+      }
+      #info-title {
+        font-size: 13px;
+        margin-bottom: 3px;
+      }
+      #info-text {
+        font-size: 11.5px;
+        line-height: 1.4;
+      }
+      #hint {
+        display: none;
+      }
     }
   </style>
 </head>
 <body>
 
   <div id="top-bar">
-    <h1 id="main-title">Lehrvideo-3D: Malignes Melanom, mRNA &amp; PD-1-Blockade</h1>
-    <div class="right-group">
-      <div class="controls">
-        <button id="btn-1" class="phase-btn active" onclick="jumpToPhase(1)">1. Normalzustand</button>
-        <button id="btn-2" class="phase-btn" onclick="jumpToPhase(2)">2. mRNA-Impfung</button>
-        <button id="btn-3" class="phase-btn" onclick="jumpToPhase(3)">3. PD-1-Blockade</button>
-        <button id="btn-4" class="phase-btn" onclick="jumpToPhase(4)">4. Tumor-Wirkung</button>
-        <button id="btn-auto" class="secondary" onclick="toggleFilm()">▶ Film abspielen (32s)</button>
-        <button id="btn-labels" class="secondary" onclick="toggleLabels()">🏷 Beschriftung</button>
-      </div>
-      <div class="lang-switch" aria-label="Sprachauswahl">
-        <button id="lang-de" class="lang-btn active" onclick="setLanguage('de')">DE</button>
-        <button id="lang-en" class="lang-btn" onclick="setLanguage('en')">EN</button>
-        <button id="lang-fr" class="lang-btn" onclick="setLanguage('fr')">FR</button>
-        <button id="lang-es" class="lang-btn" onclick="setLanguage('es')">ES</button>
-      </div>
+    <h1>Lehrvideo-3D: Malignes Melanom, mRNA &amp; PD-1-Blockade</h1>
+    <div class="controls">
+      <button id="btn-1" class="active" onclick="jumpToPhase(1)">1. Normal</button>
+      <button id="btn-2" onclick="jumpToPhase(2)">2. mRNA</button>
+      <button id="btn-3" onclick="jumpToPhase(3)">3. Blocker</button>
+      <button id="btn-4" onclick="jumpToPhase(4)">4. Wirkung</button>
+      <button id="btn-auto" class="secondary" onclick="toggleFilm()">▶ Film (32s)</button>
+      <button id="btn-labels" class="secondary" onclick="toggleLabels()">🏷 Labels</button>
+      <button id="btn-legend" class="secondary" onclick="toggleLegend()">🎨 Legende</button>
     </div>
   </div>
 
@@ -268,22 +319,22 @@
         <span id="video-timer">00:00 / 00:32</span>
       </div>
       <div id="time-note">PD-1 und PD-L1 binden in Sekunden; die T-Zelle bleibt ausgebremst.</div>
-      <input id="time-slider" type="range" min="0" max="1000" value="0" oninput="onSliderInput(this.value)">
+      <input id="time-slider" type="range" min="0" max="1000" value="0" aria-label="Zeitleiste" oninput="onSliderInput(this.value)">
       <div class="scrubber-marks">
-        <span id="mark-1">1. Normal</span>
-        <span id="mark-2">2. mRNA</span>
-        <span id="mark-3">3. Blocker</span>
-        <span id="mark-4">4. Wirkung</span>
+        <span>1. Normal</span>
+        <span>2. mRNA</span>
+        <span>3. Blocker</span>
+        <span>4. Wirkung</span>
       </div>
     </div>
 
     <div id="legend">
-      <div class="legend-item"><span class="dot" style="background:#22c55e"></span> <span id="leg-tcell">Zytotoxische T-Zelle (mit Zellkern)</span></div>
-      <div class="legend-item"><span class="dot" style="background:#ef4444"></span> <span id="leg-tumor">Maligne Melanomzelle (Melanosomen)</span></div>
-      <div class="legend-item"><span class="dot" style="background:#3b82f6"></span> <span id="leg-pd1">PD-1 Rezeptor (T-Zelle)</span></div>
-      <div class="legend-item"><span class="dot" style="background:#f97316"></span> <span id="leg-pdl1">PD-L1 Ligand (Tumorzelle)</span></div>
-      <div class="legend-item"><span class="dot" style="background:#facc15"></span> <span id="leg-ab">Anti-PD-1 IgG-Antikörper</span></div>
-      <div class="legend-item"><span class="dot" style="background:#c084fc"></span> <span id="leg-mrna">mRNA-Nanopartikel &amp; TCR/MHC-I</span></div>
+      <div class="legend-item"><span class="dot" style="background:#22c55e"></span> Zytotoxische T-Zelle (mit Zellkern)</div>
+      <div class="legend-item"><span class="dot" style="background:#ef4444"></span> Maligne Melanomzelle (Melanosomen)</div>
+      <div class="legend-item"><span class="dot" style="background:#3b82f6"></span> PD-1 Rezeptor (T-Zelle)</div>
+      <div class="legend-item"><span class="dot" style="background:#f97316"></span> PD-L1 Ligand (Tumorzelle)</div>
+      <div class="legend-item"><span class="dot" style="background:#facc15"></span> Anti-PD-1 IgG-Antikörper</div>
+      <div class="legend-item"><span class="dot" style="background:#c084fc"></span> mRNA-Nanopartikel &amp; TCR/MHC-I</div>
     </div>
 
     <div id="labels-layer">
@@ -303,385 +354,35 @@
       </div>
     </div>
 
-    <div id="hint">Maus ziehen = Drehen | Scrollen = Zoomen | Schieberegler = Zeitlupe</div>
+    <div id="hint">Ziehen = Drehen | Scrollen / Pinch = Zoomen | Schieberegler = Zeitlupe</div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <script>
-    const TRANSLATIONS = {
-      de: {
-        htmlLang: "de",
-        mainTitle: "Lehrvideo-3D: Malignes Melanom, mRNA & PD-1-Blockade",
-        btn1: "1. Normalzustand",
-        btn2: "2. mRNA-Impfung",
-        btn3: "3. PD-1-Blockade",
-        btn4: "4. Tumor-Wirkung",
-        playFilm: "▶ Film abspielen (32s)",
-        pauseFilm: "⏸ Film pausieren",
-        labelsBtn: "🏷 Beschriftung",
-        marks: ["1. Normal", "2. mRNA", "3. Blocker", "4. Wirkung"],
-        legend: {
-          tcell: "Zytotoxische T-Zelle (mit Zellkern)",
-          tumor: "Maligne Melanomzelle (Melanosomen)",
-          pd1: "PD-1 Rezeptor (T-Zelle)",
-          pdl1: "PD-L1 Ligand (Tumorzelle)",
-          ab: "Anti-PD-1 IgG-Antikörper",
-          mrna: "mRNA-Nanopartikel & TCR/MHC-I"
-        },
-        labels: {
-          tcell: "Zytotoxische T-Zelle",
-          tumor: "Maligne Melanomzelle",
-          pd1: "PD-1 Rezeptor",
-          pdl1: "PD-L1 Ligand",
-          tcr: "TCR / MHC-I + Antigen",
-          ab: "Anti-PD-1 Antikörper (IgG)",
-          mrna: "mRNA-Lipid-Nanopartikel"
-        },
-        hint: "Maus ziehen = Drehen | Scrollen = Zoomen | Schieberegler = Zeitlupe",
-        phases: [
-          {
-            max: 0.25,
-            btn: 1,
-            badge: "1. Normalzustand (Sekunden)",
-            note: "PD-1 und PD-L1 binden in Sekunden; die T-Zelle bleibt ausgebremst.",
-            title: "1. Normalzustand: Bremse durch PD-1 & PD-L1",
-            text: "Im Ausgangszustand dockt <b>PD-L1</b> (orange) der Melanomzelle direkt an den <b>PD-1-Rezeptor</b> (blau) der T-Zelle an. Dieses Hemmsignal schaltet die T-Zelle auf Standby – sie greift den Tumor nicht an."
-          },
-          {
-            max: 0.55,
-            btn: 2,
-            badge: "2. Nach mRNA-Impfung (Tage 1–7)",
-            note: "Nach der Impfung dauert es Tage, bis Antigene präsentiert und T-Zellen aktiviert sind.",
-            title: "2. Nach mRNA-Impfung: Aktivierung über das Tumor-Antigen",
-            text: "Der <b>mRNA-Lipid-Nanopartikel</b> liefert den Bauplan für Tumor-Antigene. Die T-Zelle wird aktiviert (grün) und erkennt das Antigen über <b>TCR / MHC-I</b> – doch PD-1 ist noch frei für PD-L1."
-          },
-          {
-            max: 0.80,
-            btn: 3,
-            badge: "3. PD-1-Blockade (Minuten–Stunden)",
-            note: "Antikörper besetzen zügig die PD-1-Rezeptoren und verhindern die Brems-Bindung.",
-            title: "3. IgG-Antikörper bindet an PD-1 & löst die Bremse",
-            text: "Der goldene <b>Anti-PD-1-Antikörper</b> dockt mit seinen Fab-Armen präzise an den <b>PD-1-Rezeptor</b> an. <b>PD-L1</b> wird abgeblockt und zieht sich zurück – die Bremse der T-Zelle ist gelöst."
-          },
-          {
-            max: 1.01,
-            btn: 4,
-            badge: "4. Wirkung auf die Tumorzelle (Stunden)",
-            note: "Aktivierte T-Zellen schütten in Stunden zytotoxische Botenstoffe aus und lösen den Tumor auf.",
-            title: "4. Verstärkte T-Zell-Effektorfunktion & Tumor-Zerfall",
-            text: "Ohne PD-1-Bremse gibt die T-Zelle gezielt <b>Perforin- und Granzym-Vesikel</b> (hellblau) an die Melanomzelle ab. Die Tumorzelle verliert ihren Zusammenhalt und zerfällt in einzelne Fragmente."
-          }
-        ]
-      },
-      en: {
-        htmlLang: "en",
-        mainTitle: "3D Teaching Video: Malignant Melanoma, mRNA & PD-1 Blockade",
-        btn1: "1. Baseline State",
-        btn2: "2. mRNA Vaccination",
-        btn3: "3. PD-1 Blockade",
-        btn4: "4. Tumor Effect",
-        playFilm: "▶ Play Film (32s)",
-        pauseFilm: "⏸ Pause Film",
-        labelsBtn: "🏷 Labels",
-        marks: ["1. Baseline", "2. mRNA", "3. Blocker", "4. Effect"],
-        legend: {
-          tcell: "Cytotoxic T Cell (with nucleus)",
-          tumor: "Malignant Melanoma Cell (melanosomes)",
-          pd1: "PD-1 Receptor (T cell)",
-          pdl1: "PD-L1 Ligand (tumor cell)",
-          ab: "Anti-PD-1 IgG Antibody",
-          mrna: "mRNA Nanoparticle & TCR/MHC-I"
-        },
-        labels: {
-          tcell: "Cytotoxic T Cell",
-          tumor: "Malignant Melanoma Cell",
-          pd1: "PD-1 Receptor",
-          pdl1: "PD-L1 Ligand",
-          tcr: "TCR / MHC-I + Antigen",
-          ab: "Anti-PD-1 Antibody (IgG)",
-          mrna: "mRNA Lipid Nanoparticle"
-        },
-        hint: "Drag mouse = Rotate | Scroll = Zoom | Slider = Timeline",
-        phases: [
-          {
-            max: 0.25,
-            btn: 1,
-            badge: "1. Baseline State (Seconds)",
-            note: "PD-1 and PD-L1 bind within seconds; the T cell remains inhibited.",
-            title: "1. Baseline State: Brake via PD-1 & PD-L1",
-            text: "At baseline, <b>PD-L1</b> (orange) on the melanoma cell binds directly to the <b>PD-1 receptor</b> (blue) on the T cell. This inhibitory signal acts like a brake and keeps the T cell from attacking."
-          },
-          {
-            max: 0.55,
-            btn: 2,
-            badge: "2. After mRNA Vaccination (Days 1–7)",
-            note: "Following vaccination, it takes days for antigens to be presented and T cells to activate.",
-            title: "2. After mRNA Vaccination: Activation via Tumor Antigen",
-            text: "The <b>mRNA lipid nanoparticle</b> provides instructions for tumor antigens. The T cell is activated (green) and recognizes the antigen via <b>TCR / MHC-I</b> – yet PD-1 can still bind PD-L1."
-          },
-          {
-            max: 0.80,
-            btn: 3,
-            badge: "3. PD-1 Blockade (Minutes–Hours)",
-            note: "Antibodies rapidly occupy PD-1 receptors and prevent inhibitory binding.",
-            title: "3. IgG Antibody Binds PD-1 & Releases the Brake",
-            text: "The golden <b>anti-PD-1 antibody</b> docks via its Fab arms onto the <b>PD-1 receptor</b>. <b>PD-L1</b> is blocked and retracts – releasing the brake on the T cell."
-          },
-          {
-            max: 1.01,
-            btn: 4,
-            badge: "4. Effect on the Tumor Cell (Hours)",
-            note: "Activated T cells release cytotoxic factors over hours and break down tumor cells.",
-            title: "4. Enhanced T-Cell Effector Function & Tumor Breakdown",
-            text: "Without the PD-1 brake, the T cell delivers <b>perforin and granzyme vesicles</b> (light blue) toward the melanoma cell. The tumor cell loses cohesion and disintegrates into fragments."
-          }
-        ]
-      },
-      fr: {
-        htmlLang: "fr",
-        mainTitle: "Vidéo pédagogique 3D : Mélanome malin, ARNm et blocage de PD-1",
-        btn1: "1. État initial",
-        btn2: "2. Vaccin ARNm",
-        btn3: "3. Blocage PD-1",
-        btn4: "4. Effet tumoral",
-        playFilm: "▶ Lire le film (32s)",
-        pauseFilm: "⏸ Pause",
-        labelsBtn: "🏷 Étiquettes",
-        marks: ["1. Initial", "2. ARNm", "3. Anticorps", "4. Effet"],
-        legend: {
-          tcell: "Lymphocyte T cytotoxique (noyau)",
-          tumor: "Cellule de mélanome malin (mélanosomes)",
-          pd1: "Récepteur PD-1 (lymphocyte T)",
-          pdl1: "Ligand PD-L1 (cellule tumorale)",
-          ab: "Anticorps anti-PD-1 (IgG)",
-          mrna: "Nanoparticule ARNm & TCR/CMH-I"
-        },
-        labels: {
-          tcell: "Lymphocyte T cytotoxique",
-          tumor: "Cellule de mélanome malin",
-          pd1: "Récepteur PD-1",
-          pdl1: "Ligand PD-L1",
-          tcr: "TCR / CMH-I + Antigène",
-          ab: "Anticorps anti-PD-1 (IgG)",
-          mrna: "Nanoparticule lipidique à ARNm"
-        },
-        hint: "Glisser = Pivoter | Molette = Zoom | Curseur = Chronologie",
-        phases: [
-          {
-            max: 0.25,
-            btn: 1,
-            badge: "1. État initial (Secondes)",
-            note: "PD-1 et PD-L1 se lient en quelques secondes ; le lymphocyte T reste freiné.",
-            title: "1. État initial : Frein par PD-1 et PD-L1",
-            text: "À l'état initial, <b>PD-L1</b> (orange) sur la cellule de mélanome se lie directement au <b>récepteur PD-1</b> (bleu) du lymphocyte T. Ce signal inhibiteur agit comme un frein."
-          },
-          {
-            max: 0.55,
-            btn: 2,
-            badge: "2. Après vaccin ARNm (Jours 1–7)",
-            note: "Après la vaccination, il faut plusieurs jours pour présenter l'antigène et activer les lymphocytes T.",
-            title: "2. Après vaccin ARNm : Activation via l'antigène tumoral",
-            text: "La <b>nanoparticule à ARNm</b> apporte les instructions des antigènes tumoraux. Le lymphocyte T s'active (vert) et reconnaît l'antigène via <b>TCR / CMH-I</b>, mais PD-1 reste libre."
-          },
-          {
-            max: 0.80,
-            btn: 3,
-            badge: "3. Blocage de PD-1 (Minutes–Heures)",
-            note: "Les anticorps occupent rapidement les récepteurs PD-1 et empêchent la liaison inhibitrice.",
-            title: "3. L'anticorps IgG se lie à PD-1 et lève le frein",
-            text: "L'<b>anticorps anti-PD-1</b> doré se fixe par ses bras Fab sur le <b>récepteur PD-1</b>. <b>PD-L1</b> est bloqué et se retire : le frein du lymphocyte T est levé."
-          },
-          {
-            max: 1.01,
-            btn: 4,
-            badge: "4. Effet sur la cellule tumorale (Heures)",
-            note: "Les lymphocytes T activés libèrent en quelques heures des facteurs cytotoxiques et détruisent la tumeur.",
-            title: "4. Fonction effectrice T renforcée et fragmentation tumorale",
-            text: "Sans le frein PD-1, le lymphocyte T libère des <b>vésicules de perforine et granzymes</b> (bleu clair) vers la cellule de mélanome, qui perd sa cohésion et se fragmente."
-          }
-        ]
-      },
-      es: {
-        htmlLang: "es",
-        mainTitle: "Video didáctico 3D: Melanoma maligno, ARNm y bloqueo de PD-1",
-        btn1: "1. Estado basal",
-        btn2: "2. Vacuna ARNm",
-        btn3: "3. Bloqueo PD-1",
-        btn4: "4. Efecto tumoral",
-        playFilm: "▶ Reproducir (32s)",
-        pauseFilm: "⏸ Pausar",
-        labelsBtn: "🏷 Etiquetas",
-        marks: ["1. Basal", "2. ARNm", "3. Bloqueo", "4. Efecto"],
-        legend: {
-          tcell: "Linfocito T citotóxico (núcleo)",
-          tumor: "Célula de melanoma maligno (melanosomas)",
-          pd1: "Receptor PD-1 (linfocito T)",
-          pdl1: "Ligando PD-L1 (célula tumoral)",
-          ab: "Anticuerpo anti-PD-1 (IgG)",
-          mrna: "Nanopartícula ARNm y TCR/CMH-I"
-        },
-        labels: {
-          tcell: "Linfocito T citotóxico",
-          tumor: "Célula de melanoma maligno",
-          pd1: "Receptor PD-1",
-          pdl1: "Ligando PD-L1",
-          tcr: "TCR / CMH-I + Antígeno",
-          ab: "Anticuerpo anti-PD-1 (IgG)",
-          mrna: "Nanopartícula lipídica de ARNm"
-        },
-        hint: "Arrastrar = Girar | Rueda = Zoom | Control = Línea de tiempo",
-        phases: [
-          {
-            max: 0.25,
-            btn: 1,
-            badge: "1. Estado basal (Segundos)",
-            note: "PD-1 y PD-L1 se unen en segundos; el linfocito T permanece frenado.",
-            title: "1. Estado basal: Freno mediante PD-1 y PD-L1",
-            text: "En el estado basal, <b>PD-L1</b> (naranja) de la célula de melanoma se une directamente al <b>receptor PD-1</b> (azul) del linfocito T. Esta señal inhibidora actúa como freno."
-          },
-          {
-            max: 0.55,
-            btn: 2,
-            badge: "2. Tras la vacuna de ARNm (Días 1–7)",
-            note: "Tras la vacunación, se requieren días para presentar antígenos y activar linfocitos T.",
-            title: "2. Tras la vacuna de ARNm: Activación por antígeno tumoral",
-            text: "La <b>nanopartícula de ARNm</b> aporta las instrucciones de antígenos tumorales. El linfocito T se activa (verde) y reconoce el antígeno mediante <b>TCR / CMH-I</b>, pero PD-1 sigue libre."
-          },
-          {
-            max: 0.80,
-            btn: 3,
-            badge: "3. Bloqueo de PD-1 (Minutos–Horas)",
-            note: "Los anticuerpos ocupan rápidamente los receptores PD-1 e impiden la unión inhibidora.",
-            title: "3. El anticuerpo IgG se une a PD-1 y libera el freno",
-            text: "El <b>anticuerpo anti-PD-1</b> dorado se acopla con sus brazos Fab al <b>receptor PD-1</b>. <b>PD-L1</b> queda bloqueado y se aparta, liberando el freno del linfocito T."
-          },
-          {
-            max: 1.01,
-            btn: 4,
-            badge: "4. Efecto sobre la célula tumoral (Horas)",
-            note: "Los linfocitos T activados liberan en horas sustancias citotóxicas y destruyen el tumor.",
-            title: "4. Función efectora T reforzada y fragmentación tumoral",
-            text: "Sin el freno de PD-1, el linfocito T libera <b>vesículas de perforina y granzima</b> (azul claro) hacia la célula de melanoma, que pierde cohesión y se fragmenta."
-          }
-        ]
-      }
-    };
-
-    let currentLang = "de";
-    let timelineProgress = 0.0;
-    let filmPlaying = false;
-    let labelsVisible = true;
-    const TOTAL_SECONDS = 32;
-
-    const slider = document.getElementById("time-slider");
-    const timerEl = document.getElementById("video-timer");
-
-    function formatTime(sec) {
-      const s = Math.floor(sec);
-      return "00:" + (s < 10 ? "0" + s : s);
-    }
-
-    function applyLanguageTexts() {
-      const t = TRANSLATIONS[currentLang];
-      document.documentElement.lang = t.htmlLang;
-      document.getElementById("main-title").textContent = t.mainTitle;
-      document.getElementById("btn-1").textContent = t.btn1;
-      document.getElementById("btn-2").textContent = t.btn2;
-      document.getElementById("btn-3").textContent = t.btn3;
-      document.getElementById("btn-4").textContent = t.btn4;
-      document.getElementById("btn-auto").textContent = filmPlaying ? t.pauseFilm : t.playFilm;
-      document.getElementById("btn-labels").textContent = t.labelsBtn;
-
-      document.getElementById("mark-1").textContent = t.marks[0];
-      document.getElementById("mark-2").textContent = t.marks[1];
-      document.getElementById("mark-3").textContent = t.marks[2];
-      document.getElementById("mark-4").textContent = t.marks[3];
-
-      document.getElementById("leg-tcell").textContent = t.legend.tcell;
-      document.getElementById("leg-tumor").textContent = t.legend.tumor;
-      document.getElementById("leg-pd1").textContent = t.legend.pd1;
-      document.getElementById("leg-pdl1").textContent = t.legend.pdl1;
-      document.getElementById("leg-ab").textContent = t.legend.ab;
-      document.getElementById("leg-mrna").textContent = t.legend.mrna;
-
-      document.getElementById("lbl-tcell").textContent = t.labels.tcell;
-      document.getElementById("lbl-tumor").textContent = t.labels.tumor;
-      document.getElementById("lbl-pd1").textContent = t.labels.pd1;
-      document.getElementById("lbl-pdl1").textContent = t.labels.pdl1;
-      document.getElementById("lbl-tcr").textContent = t.labels.tcr;
-      document.getElementById("lbl-ab").textContent = t.labels.ab;
-      document.getElementById("lbl-mrna").textContent = t.labels.mrna;
-
-      document.getElementById("hint").textContent = t.hint;
-
-      ["de", "en", "fr", "es"].forEach(code => {
-        document.getElementById("lang-" + code).classList.toggle("active", code === currentLang);
-      });
-
-      updateUIForProgress(timelineProgress);
-    }
-
-    function setLanguage(lang) {
-      if (!TRANSLATIONS[lang]) return;
-      currentLang = lang;
-      applyLanguageTexts();
-    }
-
-    function updateUIForProgress(p) {
-      const phases = TRANSLATIONS[currentLang].phases;
-      const activeInfo = phases.find(d => p <= d.max) || phases[3];
-      for (let i = 1; i <= 4; i++) {
-        document.getElementById("btn-" + i).classList.toggle("active", activeInfo.btn === i);
-      }
-      document.getElementById("time-badge").textContent = activeInfo.badge;
-      document.getElementById("time-note").textContent = activeInfo.note;
-      document.getElementById("info-title").textContent = activeInfo.title;
-      document.getElementById("info-text").innerHTML = activeInfo.text;
-      timerEl.textContent = formatTime(p * TOTAL_SECONDS) + " / " + formatTime(TOTAL_SECONDS);
-    }
-
-    function jumpToPhase(phase) {
-      const targets = { 1: 0.0, 2: 0.36, 3: 0.68, 4: 0.93 };
-      timelineProgress = targets[phase];
-      slider.value = Math.round(timelineProgress * 1000);
-      updateUIForProgress(timelineProgress);
-    }
-
-    function onSliderInput(val) {
-      timelineProgress = Number(val) / 1000;
-      updateUIForProgress(timelineProgress);
-    }
-
-    function toggleFilm() {
-      filmPlaying = !filmPlaying;
-      const t = TRANSLATIONS[currentLang];
-      const btn = document.getElementById("btn-auto");
-      btn.textContent = filmPlaying ? t.pauseFilm : t.playFilm;
-      btn.classList.toggle("active", filmPlaying);
-    }
-
-    function toggleLabels() {
-      labelsVisible = !labelsVisible;
-      document.querySelectorAll(".label-3d").forEach(el => {
-        el.classList.toggle("hidden-label", !labelsVisible);
-      });
-    }
-
-    // 3D-Szene mit Three.js
     const container = document.getElementById("canvas-container");
     const scene = new THREE.Scene();
 
-    const w = Math.max(container.clientWidth, 640);
-    const h = Math.max(container.clientHeight, 400);
-    const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 1000);
+    function getContainerSize() {
+      return {
+        w: Math.max(container.clientWidth || window.innerWidth, 1),
+        h: Math.max(container.clientHeight || (window.innerHeight - 50), 1)
+      };
+    }
 
+    let { w, h } = getContainerSize();
+    const isNarrowScreen = () => window.innerWidth <= 768;
+    const camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 1000);
+
+    // Kamera-Steuerung (Maus & Touch: Drehen + Pinch-Zoom)
     let rotX = 0.18;
     let rotY = 0.0;
-    let camDist = 11.8;
+    let camDist = isNarrowScreen() ? 14.5 : 11.8;
     let isDragging = false;
     let prevX = 0;
     let prevY = 0;
+    let pinchStartDist = null;
+    let pinchStartCamDist = camDist;
 
     function updateCameraPos() {
       camera.position.x = camDist * Math.sin(rotY) * Math.cos(rotX);
@@ -709,15 +410,66 @@
     });
     container.addEventListener("wheel", (e) => {
       e.preventDefault();
-      camDist = Math.max(6.2, Math.min(18, camDist + e.deltaY * 0.008));
+      camDist = Math.max(6.2, Math.min(20, camDist + e.deltaY * 0.008));
       updateCameraPos();
     }, { passive: false });
+
+    function getTouchDistance(t1, t2) {
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      return Math.hypot(dx, dy);
+    }
+
+    container.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        pinchStartDist = null;
+        prevX = e.touches[0].clientX;
+        prevY = e.touches[0].clientY;
+      } else if (e.touches.length >= 2) {
+        isDragging = false;
+        pinchStartDist = getTouchDistance(e.touches[0], e.touches[1]);
+        pinchStartCamDist = camDist;
+      }
+    }, { passive: true });
+
+    container.addEventListener("touchmove", (e) => {
+      if (e.touches.length >= 2 && pinchStartDist) {
+        e.preventDefault();
+        const dist = getTouchDistance(e.touches[0], e.touches[1]);
+        const scale = pinchStartCamDist * (pinchStartDist / Math.max(dist, 10));
+        camDist = Math.max(6.2, Math.min(20, scale));
+        updateCameraPos();
+      } else if (e.touches.length === 1 && isDragging) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - prevX;
+        const dy = e.touches[0].clientY - prevY;
+        prevX = e.touches[0].clientX;
+        prevY = e.touches[0].clientY;
+        rotY -= dx * 0.0075;
+        rotX = Math.max(-1.1, Math.min(1.1, rotX + dy * 0.0075));
+        updateCameraPos();
+      }
+    }, { passive: false });
+
+    container.addEventListener("touchend", (e) => {
+      if (e.touches.length === 0) {
+        isDragging = false;
+        pinchStartDist = null;
+      } else if (e.touches.length === 1) {
+        pinchStartDist = null;
+        isDragging = true;
+        prevX = e.touches[0].clientX;
+        prevY = e.touches[0].clientY;
+      }
+    });
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     container.appendChild(renderer.domElement);
 
+    // Studio-Beleuchtung für tiefe 3D-Plastizität
     scene.add(new THREE.AmbientLight(0xdbeafe, 0.65));
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
     keyLight.position.set(6, 10, 9);
@@ -729,6 +481,7 @@
     bottomFill.position.set(0, -8, 5);
     scene.add(bottomFill);
 
+    // Dezenter Zell-Hintergrundnebel (Mikroumgebung)
     const bgCellsGroup = new THREE.Group();
     const bgCellMat = new THREE.MeshStandardMaterial({
       color: 0x1e293b,
@@ -748,6 +501,7 @@
     }
     scene.add(bgCellsGroup);
 
+    // Hilfsfunktion: Glatte Ig-Proteindomäne (Kapselform aus Zylinder + Halbkugeln)
     function createIgDomain(radius, length, material) {
       const g = new THREE.Group();
       const cylLen = Math.max(0.01, length - radius * 2);
@@ -760,7 +514,11 @@
       return g;
     }
 
+    // =========================================================
+    // 1. DETAILIERTE ZYTOTOXISCHE T-ZELLE (Membran + Zellkern + Mikrovilli)
+    // =========================================================
     const tCellGroup = new THREE.Group();
+
     const tCellMembraneMat = new THREE.MeshPhysicalMaterial({
       color: 0x64748b,
       roughness: 0.28,
@@ -773,7 +531,10 @@
     const tCellMembrane = new THREE.Mesh(new THREE.SphereGeometry(1.78, 48, 48), tCellMembraneMat);
     tCellGroup.add(tCellMembrane);
 
-    const nucleusMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+    const nucleusMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.5
+    });
     const tCellNucleus = new THREE.Mesh(new THREE.SphereGeometry(1.12, 32, 32), nucleusMat);
     tCellNucleus.position.set(-0.18, 0.05, 0);
     tCellGroup.add(tCellNucleus);
@@ -795,6 +556,9 @@
     }
     scene.add(tCellGroup);
 
+    // =========================================================
+    // 2. DETAILIERTE MALIGNE MELANOMZELLE (Segmentiert + Melanosomen)
+    // =========================================================
     const tumorGroup = new THREE.Group();
     const tumorParts = [];
     const partOffsets = [
@@ -834,6 +598,9 @@
     });
     scene.add(tumorGroup);
 
+    // =========================================================
+    // 3. DETAILIERTE REZEPTOREN (PD-1, PD-L1, TCR, MHC-I + Antigen)
+    // =========================================================
     const pd1Mat = new THREE.MeshPhysicalMaterial({ color: 0x3b82f6, roughness: 0.22, clearcoat: 0.6 });
     const pd1TipMat = new THREE.MeshPhysicalMaterial({ color: 0x93c5fd, roughness: 0.2, clearcoat: 0.7 });
     const pdl1Mat = new THREE.MeshPhysicalMaterial({ color: 0xf97316, roughness: 0.22, clearcoat: 0.6 });
@@ -842,12 +609,15 @@
     const pd1Group = new THREE.Group();
     const pd1Anchor = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.16, 20), pd1Mat);
     pd1Anchor.rotation.z = -Math.PI / 2;
+
     const pd1Dom1 = createIgDomain(0.11, 0.44, pd1Mat);
     pd1Dom1.rotation.z = -Math.PI / 2;
     pd1Dom1.position.x = 0.24;
+
     const pd1Cup = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.085, 16, 28, Math.PI), pd1TipMat);
     pd1Cup.rotation.z = -Math.PI / 2;
     pd1Cup.position.x = 0.48;
+
     pd1Group.add(pd1Anchor, pd1Dom1, pd1Cup);
     pd1Group.position.set(1.76, 0.66, 0.22);
     tCellGroup.add(pd1Group);
@@ -855,12 +625,15 @@
     const pdl1Group = new THREE.Group();
     const pdl1Anchor = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.16, 20), pdl1Mat);
     pdl1Anchor.rotation.z = Math.PI / 2;
+
     const pdl1Dom1 = createIgDomain(0.105, 0.44, pdl1Mat);
     pdl1Dom1.rotation.z = Math.PI / 2;
     pdl1Dom1.position.x = -0.24;
+
     const pdl1Head = new THREE.Mesh(new THREE.SphereGeometry(0.21, 20, 20), pdl1TipMat);
     pdl1Head.scale.set(1.15, 0.92, 0.92);
     pdl1Head.position.x = -0.48;
+
     pdl1Group.add(pdl1Anchor, pdl1Dom1, pdl1Head);
     pdl1Group.position.set(-2.02, 0.66, 0.22);
     tumorGroup.add(pdl1Group);
@@ -893,6 +666,9 @@
     mhcGroup.position.set(-2.02, -0.66, 0.22);
     tumorGroup.add(mhcGroup);
 
+    // =========================================================
+    // 4. HOCHDETAILLIERTER IgG-ANTIKÖRPER
+    // =========================================================
     const heavyChainMat = new THREE.MeshPhysicalMaterial({
       color: 0xf59e0b,
       roughness: 0.18,
@@ -917,11 +693,14 @@
 
     function createRealisticIgGAntibody() {
       const ab = new THREE.Group();
+
       [-0.085, 0.085].forEach(xOff => {
         const ch3 = createIgDomain(0.082, 0.38, heavyChainMat);
         ch3.position.set(xOff, -0.58, 0);
+
         const ch2 = createIgDomain(0.082, 0.38, heavyChainMat);
         ch2.position.set(xOff, -0.22, 0);
+
         ab.add(ch3, ch2);
       });
 
@@ -960,6 +739,9 @@
     abGroup.rotation.z = Math.PI / 2;
     scene.add(abGroup);
 
+    // =========================================================
+    // 5. mRNA-LIPID-NANOPARTIKEL & EFFEKTOR-GRANULA
+    // =========================================================
     const mrnaCapsule = new THREE.Group();
     const lipidShell = new THREE.Mesh(
       new THREE.SphereGeometry(0.45, 28, 28),
@@ -1009,17 +791,108 @@
     }
     function lerp(a, b, t) { return a + (b - a) * t; }
 
+    let timelineProgress = 0.0;
+    let filmPlaying = false;
+    let labelsVisible = true;
+    const TOTAL_SECONDS = 32;
+    const slider = document.getElementById("time-slider");
+    const timerEl = document.getElementById("video-timer");
+
+    const phaseDescriptions = [
+      {
+        max: 0.25,
+        btn: 1,
+        badge: "1. Normalzustand (Sekunden)",
+        note: "PD-1 und PD-L1 binden in Sekunden; die T-Zelle bleibt ausgebremst.",
+        title: "1. Normalzustand: Bremse durch PD-1 & PD-L1",
+        text: "Im Ausgangszustand dockt <b>PD-L1</b> (orange) der Melanomzelle direkt an den <b>PD-1-Rezeptor</b> (blau) der T-Zelle an. Dieses Hemmsignal schaltet die T-Zelle auf Standby – sie greift den Tumor nicht an."
+      },
+      {
+        max: 0.55,
+        btn: 2,
+        badge: "2. Nach mRNA-Impfung (Tage 1–7)",
+        note: "Nach der Impfung dauert es Tage, bis Antigene präsentiert und T-Zellen aktiviert sind.",
+        title: "2. Nach mRNA-Impfung: Aktivierung über das Tumor-Antigen",
+        text: "Der <b>mRNA-Lipid-Nanopartikel</b> liefert den Bauplan für Tumor-Antigene. Die T-Zelle wird aktiviert (grün) und erkennt das Antigen über <b>TCR / MHC-I</b> – doch PD-1 ist noch frei für PD-L1."
+      },
+      {
+        max: 0.80,
+        btn: 3,
+        badge: "3. PD-1-Blockade (Minuten–Stunden)",
+        note: "Antikörper besetzen zügig die PD-1-Rezeptoren und verhindern die Brems-Bindung.",
+        title: "3. IgG-Antikörper bindet an PD-1 & löst die Bremse",
+        text: "Der goldene <b>Anti-PD-1-Antikörper</b> dockt mit seinen Fab-Armen präzise an den <b>PD-1-Rezeptor</b> an. <b>PD-L1</b> wird abgeblockt und zieht sich zurück – die Bremse der T-Zelle ist gelöst."
+      },
+      {
+        max: 1.01,
+        btn: 4,
+        badge: "4. Wirkung auf die Tumorzelle (Stunden)",
+        note: "Aktivierte T-Zellen schütten in Stunden zytotoxische Botenstoffe aus und lösen den Tumor auf.",
+        title: "4. Verstärkte T-Zell-Effektorfunktion & Tumor-Zerfall",
+        text: "Ohne PD-1-Bremse gibt die T-Zelle gezielt <b>Perforin- und Granzym-Vesikel</b> (hellblau) an die Melanomzelle ab. Die Tumorzelle verliert ihren Zusammenhalt und zerfällt in einzelne Fragmente."
+      }
+    ];
+
+    function formatTime(sec) {
+      const s = Math.floor(sec);
+      return "00:" + (s < 10 ? "0" + s : s);
+    }
+
+    function updateUIForProgress(p) {
+      const activeInfo = phaseDescriptions.find(d => p <= d.max) || phaseDescriptions[3];
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById("btn-" + i).classList.toggle("active", activeInfo.btn === i);
+      }
+      document.getElementById("time-badge").innerText = activeInfo.badge;
+      document.getElementById("time-note").innerText = activeInfo.note;
+      document.getElementById("info-title").innerText = activeInfo.title;
+      document.getElementById("info-text").innerHTML = activeInfo.text;
+      timerEl.innerText = formatTime(p * TOTAL_SECONDS) + " / " + formatTime(TOTAL_SECONDS);
+    }
+
+    function jumpToPhase(phase) {
+      const targets = { 1: 0.0, 2: 0.36, 3: 0.68, 4: 0.93 };
+      timelineProgress = targets[phase];
+      slider.value = Math.round(timelineProgress * 1000);
+      updateUIForProgress(timelineProgress);
+    }
+
+    function onSliderInput(val) {
+      timelineProgress = Number(val) / 1000;
+      updateUIForProgress(timelineProgress);
+    }
+
+    function toggleFilm() {
+      filmPlaying = !filmPlaying;
+      const btn = document.getElementById("btn-auto");
+      btn.innerText = filmPlaying ? "⏸ Pause" : "▶ Film (32s)";
+      btn.classList.toggle("active", filmPlaying);
+    }
+
+    function toggleLabels() {
+      labelsVisible = !labelsVisible;
+      document.querySelectorAll(".label-3d").forEach(el => {
+        el.classList.toggle("hidden-label", !labelsVisible);
+      });
+    }
+
+    function toggleLegend() {
+      document.getElementById("legend").classList.toggle("open-mobile");
+    }
+
     function updateLabel(el, worldPos, show = true) {
       if (!labelsVisible || !show) {
         el.style.opacity = "0";
         return;
       }
       const v = worldPos.clone().project(camera);
-      const visible = v.z < 1;
-      el.style.opacity = visible ? "1" : "0";
-      if (visible) {
-        el.style.left = ((v.x * 0.5 + 0.5) * container.clientWidth) + "px";
-        el.style.top = ((-v.y * 0.5 + 0.5) * container.clientHeight) + "px";
+      const inFront = v.z < 1 && v.x >= -1.05 && v.x <= 1.05 && v.y >= -1.05 && v.y <= 1.05;
+      el.style.opacity = inFront ? "1" : "0";
+      if (inFront) {
+        const cw = container.clientWidth || window.innerWidth;
+        const ch = container.clientHeight || window.innerHeight;
+        el.style.left = ((v.x * 0.5 + 0.5) * cw) + "px";
+        el.style.top = ((-v.y * 0.5 + 0.5) * ch) + "px";
       }
     }
 
@@ -1105,7 +978,7 @@
       updateLabel(document.getElementById("lbl-mrna"), mrnaCapsule.position.clone().add(new THREE.Vector3(0, 0.58, 0)), mrnaVisible);
     }
 
-    applyLanguageTexts();
+    updateUIForProgress(0);
     applyTimelineState(0);
 
     let lastFrameTime = performance.now();
@@ -1130,11 +1003,11 @@
     requestAnimationFrame(animate);
 
     window.addEventListener("resize", () => {
-      const nw = Math.max(container.clientWidth, 640);
-      const nh = Math.max(container.clientHeight, 400);
-      camera.aspect = nw / nh;
+      const size = getContainerSize();
+      camera.aspect = size.w / size.h;
       camera.updateProjectionMatrix();
-      renderer.setSize(nw, nh);
+      renderer.setSize(size.w, size.h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     });
   </script>
 </body>
