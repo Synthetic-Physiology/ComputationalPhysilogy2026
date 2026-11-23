@@ -7,3 +7,4 @@ personalized mRNA-vaccine for malignant melanoma - 2 different 3D-Models with ed
 
 Project aquagenic pruritus: interactive [Model](https://synthetic-physiology.github.io/ComputationalPhysiology2026/AquaPur/Model01.html) of how timing, dosage, and contact duration before water exposure (t = 0) modulate aquagenic pruritus with beta-alanine in arbitrary units (a.u.). (Liliana Rudolf)
 
+Project protein folding dependent protein protein interaction: Using interactive py3Dmol molecular models and schematic visualizations, the project illustrates how losing the C-terminal region removes a key binding interface for p47phox, impairing activation of the NADPH oxidase complex and its catalytic core (NOX2), reducing the antimicrobial respiratory burst, and linking to chronic granulomatous disease (CGD). 
