@@ -10,9 +10,9 @@ Student projects from the elective course *Computational Physiology*, 2026. Ever
 | [Aquagenic pruritus](#aquagenic-pruritus) | Pharmacology | [Interactive model](https://synthetic-physiology.github.io/ComputationalPhysiology2026/AquaPur/Model01.html) | Liliana Rudolf |
 | [Blood flow in a vascular network](#blood-flow-in-a-vascular-network) | Haemodynamics | [Interactive model](https://synthetic-physiology.github.io/ComputationalPhysiology2026/BloodFlow/blood_flow_demo.html) | Florian Winter |
 | [p22phox truncation and NADPH oxidase](#protein-folding-and-proteinprotein-interaction) | Structural biology | [Project folder](InterFold) | Magali Stecher |
-| [GLP-1 agonists, fat and muscle](#insulin-response-to-glp-1-receptor-agonists) | Metabolism | [Interactive simulator](https://synthetic-physiology.github.io/ComputationalPhysiology2026/MucleGLP1/MuscleGLP1.html) | Luke Gemünden |
+| [GLP-1 agonists, fat and muscle](#insulin-response-to-glp-1-receptor-agonists) | Metabolism | [Interactive simulator](https://synthetic-physiology.github.io/ComputationalPhysiology2026/MuscleGLP1/MuscleGLP1.html) | Luke Gemünden |
 | [Piezo1 simulation](#piezo1-simulation) | Mechanotransduction | [Interactive simulator](https://synthetic-physiology.github.io/ComputationalPhysiology2026/PiezoSim/PIEZO1_Simulator.html) | Ben Seibel |
-| [Myelopoiesis and APL](#myelopoiesis-apl-and-atra-therapy) | Haematology | [Interactive model](https://synthetic-physiology.github.io/ComputationalPhysiology2026/Hematopoiesis_APL/HematopoiesisAPL.html) | Ben Glück |
+| [Myelopoiesis and APL](#myelopoiesis-apl-and-atra-therapy) | Haematology | [Interactive model](https://synthetic-physiology.github.io/ComputationalPhysiology2026/HematopoiesisAPL/HematopoiesisAPL.html) | Ben Glück |
 
 ---
 
@@ -54,7 +54,7 @@ The CYBA p.Q143* mutation cuts the protein p22phox short. Interactive py3Dmol mo
 
 GLP-1 receptor agonists such as semaglutide reduce fat, but they also reduce muscle. A physiological glucose–insulin model built from published study values separates the effect of the drug into fat loss, muscle loss and direct drug actions. Users choose a patient group (healthy, obese, prediabetic, type 2 diabetes), adjust fat loss, muscle loss and strength training, and watch the oral glucose tolerance test change.
 
-▶ [Open the simulator](https://synthetic-physiology.github.io/ComputationalPhysiology2026/MucleGLP1/MuscleGLP1.html)
+▶ [Open the simulator](https://synthetic-physiology.github.io/ComputationalPhysiology2026/MuscleGLP1/MuscleGLP1.html)
 
 ## Piezo1 simulation
 
@@ -70,7 +70,7 @@ A molecular model of the mechanosensitive ion channel Piezo1, with and without m
 
 A spatial agent-based model of the bone marrow simulates healthy granulopoiesis cell by cell. It then adds acute promyelocytic leukaemia (APL), driven by the PML-RARα fusion protein, and its treatment with all-trans retinoic acid (ATRA), which forces the leukaemic cells to differentiate. Users watch the marrow fill with blasts, start ATRA, and follow how the clonal diversity of healthy stem cells changes.
 
-▶ [Open the simulation](https://synthetic-physiology.github.io/ComputationalPhysiology2026/Hematopoiesis_APL/HematopoiesisAPL.html)
+▶ [Open the simulation](https://synthetic-physiology.github.io/ComputationalPhysiology2026/HematopoiesisAPL/HematopoiesisAPL.html)
 
 ---
 
