@@ -10,3 +10,5 @@ Project aquagenic pruritus: interactive [Model](https://synthetic-physiology.git
 Project protein folding dependent protein protein interaction: Using interactive py3Dmol molecular models and schematic visualizations, the project illustrates how losing the C-terminal region removes a key binding interface for p47phox, impairing activation of the NADPH oxidase complex and its catalytic core (NOX2), reducing the antimicrobial respiratory burst, and linking to chronic granulomatous disease (CGD). (Magali Stecher)
 
 Project insulin response to GLP1-agonists: A physiological glucose-insulin model built from published study values separates the effects of GLP-1 receptor agonists into fat loss, muscle loss and direct drug actions. (Luke Gemünden)
+
+Project Piezo simmulation: A molecular [model of Piezo1](https://synthetic-physiology.github.io/ComputationalPhysiology2026/PiezoSim/PIEZO1_Simulator.html) with and without mutations to simulate ion current in response to mechanical stimulation of a cell or a membrane patch. (Ben Seibel)
