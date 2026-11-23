@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Myelopoese, APL und ATRA</title>
+<meta name="description" content="Agentenbasierte Simulation der Granulopoese im Knochenmark, der akuten Promyelozytenleukämie (PML-RARα) und der Differenzierungstherapie mit ATRA.">
+<style>
+:root {
+  --bg: #f7f6f2; --panel: #ffffff; --ink: #14213d; --ink2: #52514e; --muted: #8a8984; --line: #e4e2dc; --grid: #ecebe6; --chip: #f0efea;
+  --accent: #1f78b4; --empty: #f1f0ec;
+  --s1: #1f78b4; --s2: #33a02c; --s3: #e31a1c; --s4: #ff7f00; --s5: #00a6c8; --apl: #7a0a1a;
+  --mut: #14213d; --atra: #d9730d; --rem: rgba(80, 180, 120, 0.16); --lo: #ff7f00; --clones: #6a3d9a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c; --panel: #1d2027; --ink: #e9e8e4; --ink2: #b9b8b3; --muted: #8b8a86; --line: #30333b; --grid: #2a2d34; --chip: #262a32;
+    --accent: #5aa6e0; --empty: #22252c;
+    --s1: #4f9be0; --s2: #5cc15a; --s3: #f0504f; --s4: #ff9a3c; --s5: #2cc6e6; --apl: #ff9fb0;
+    --mut: #e9e8e4; --atra: #f0a050; --rem: rgba(90, 200, 130, 0.14); --lo: #ff9a3c; --clones: #b18cf0;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171c; --panel: #1d2027; --ink: #e9e8e4; --ink2: #b9b8b3; --muted: #8b8a86; --line: #30333b; --grid: #2a2d34; --chip: #262a32;
+  --accent: #5aa6e0; --empty: #22252c;
+  --s1: #4f9be0; --s2: #5cc15a; --s3: #f0504f; --s4: #ff9a3c; --s5: #2cc6e6; --apl: #ff9fb0;
+  --mut: #e9e8e4; --atra: #f0a050; --rem: rgba(90, 200, 130, 0.14); --lo: #ff9a3c; --clones: #b18cf0;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+h1 { font-size: 1.55rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+.sub { color: var(--ink2); margin: 0; max-width: 800px; }
+h2 { font-size: 1.02rem; margin: 0 0 10px; }
+h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 16px 0 8px; font-weight: 600; }
+.btn { font: inherit; font-size: 0.88rem; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 16px; border-bottom: 1px solid var(--line); }
+.tabs button { font: inherit; font-size: 0.95rem; padding: 9px 14px; border: 0; background: none; color: var(--ink2); cursor: pointer; border-bottom: 2.5px solid transparent; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.controls h3:first-child { margin-top: 0; }
+.ctl { margin: 10px 0 12px; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; font-size: 0.88rem; }
+.ctl output { font-variant-numeric: tabular-nums; color: var(--ink2); white-space: nowrap; }
+.ctl .hint { font-size: 0.76rem; color: var(--muted); margin-top: 1px; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; margin: 8px 0; }
+.toggle input { width: 17px; height: 17px; accent-color: var(--accent); }
+.row-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.main { display: grid; gap: 18px; min-width: 0; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 1100px) { .two { grid-template-columns: minmax(0, 1fr); } }
+canvas { width: 100%; display: block; }
+canvas.marrow { image-rendering: pixelated; border-radius: 6px; aspect-ratio: 5 / 4; }
+.status { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.88rem; color: var(--ink2); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+.status b { color: var(--ink); font-weight: 600; }
+.phase { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 0.82rem; background: var(--chip); color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8rem; color: var(--ink2); margin-top: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; }
+.ln { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid; }
+.ln.dash { border-top-style: dashed; } .ln.dot { border-top-style: dotted; }
+.axisnote { font-size: 0.78rem; color: var(--muted); display: flex; justify-content: space-between; margin-top: 4px; }
+.progress { height: 6px; background: var(--chip); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+.progress div { height: 100%; width: 0; background: var(--accent); transition: width 0.1s; }
+table { width: 100%; border-collapse: collapse; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-weight: 600; font-size: 0.78rem; }
+.tablewrap { overflow-x: auto; }
+.about { font-size: 0.9rem; color: var(--ink2); }
+.about p, .about ul { margin: 6px 0 10px; }
+.about li { margin: 3px 0; }
+.about code { font-size: 0.85em; background: var(--chip); padding: 1px 4px; border-radius: 4px; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; }
+@media (max-width: 800px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 4px 0 2px; }
+@media (max-width: 700px) { .stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stage { border-left: 4px solid var(--c); padding: 4px 8px; font-size: 0.82rem; background: var(--chip); border-radius: 0 6px 6px 0; }
+.stage b { display: block; color: var(--ink); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Myelopoese, APL und ATRA-Therapie</h1>
+    <p class="sub">Ein agentenbasiertes Modell des Knochenmarks: 2.000 Plätze, jede Zelle ein eigener Agent. Gesunde Stammzellen bilden über fünf Reifungsstufen neutrophile Granulozyten. Die Translokation t(15;17) erzeugt PML-RARα, und die Reifung bleibt beim Promyelozyten stehen. All-trans-Retinsäure (ATRA) löst diesen Block.</p>
+  </div>
+  <button class="btn" id="themeBtn" type="button">Hell/Dunkel</button>
+</header>
+
+<div class="stages" id="stageCards"></div>
+
+<nav class="tabs" role="tablist" style="margin-top:16px">
+  <button role="tab" data-tab="apl" aria-selected="true">APL und ATRA</button>
+  <button role="tab" data-tab="healthy" aria-selected="false">Gesunde Blutbildung und Klone</button>
+  <button role="tab" data-tab="stats" aria-selected="false">Statistik über viele Läufe</button>
+</nav>
+
+<!-- ================= TAB 1: APL + ATRA ================= -->
+<section id="tab-apl" class="layout">
+  <aside class="panel controls">
+    <h3>Simulation</h3>
+    <div class="row-btns"><button class="btn primary" id="aPlay" type="button">Start</button><button class="btn" id="aReset" type="button">Neustart</button></div>
+    <div class="ctl"><label for="aSpeed">Tempo <output id="aSpeedO"></output></label><input type="range" id="aSpeed" min="1" max="16" step="1" value="4"></div>
+    <h3>Krankheitsverlauf</h3>
+    <div class="ctl"><label for="aMut">PML-RARα-Mutation an Tag <output id="aMutO"></output></label><input type="range" id="aMut" min="5" max="60" step="1" value="25"><div class="hint">4 Vorläuferzellen werden zu leukämischen Promyelozyten. Änderung startet neu.</div></div>
+    <h3>Therapie</h3>
+    <label class="toggle"><input type="checkbox" id="aOn" checked> ATRA geben</label>
+    <div class="ctl"><label for="aAtra">ATRA-Start an Tag <output id="aAtraO"></output></label><input type="range" id="aAtra" min="10" max="110" step="1" value="55"></div>
+    <div class="ctl"><label for="aClock">ATRA-Wirkstärke <output id="aClockO"></output></label><input type="range" id="aClock" min="0.005" max="0.1" step="0.001" value="0.018"><div class="hint">Reifungsfortschritt eines Blasten pro 3 h. Originalwert 0,018.</div></div>
+    <div class="ctl"><label for="aPnr">Point of no Return <output id="aPnrO"></output></label><input type="range" id="aPnr" min="0.05" max="1" step="0.01" value="0.45"><div class="hint">Ab diesem Reifungsgrad teilt sich ein Blast nicht mehr. Originalwert 0,45.</div></div>
+    <label class="toggle"><input type="checkbox" id="aInh" checked> Tochterzellen erben die Reifungsuhr</label>
+    <div class="hint" style="font-size:0.76rem;color:var(--muted)">Korrektur gegenüber dem Python-Skript. Ausgeschaltet startet jede Tochter eines Blasten wieder bei 0, und es kommt zu keiner Remission.</div>
+    <h3>Darstellung</h3>
+    <label class="toggle"><input type="checkbox" id="aHi" checked> APL-Blasten hervorheben</label>
+    <div class="ctl"><label for="aSeed">Zufallsstartwert <output id="aSeedO"></output></label><input type="range" id="aSeed" min="1" max="100" step="1" value="42"><div class="hint">Gleicher Wert, gleicher Verlauf. Änderung startet neu.</div></div>
+  </aside>
+  <div class="main">
+    <div class="two">
+      <section class="panel">
+        <h2>Knochenmark</h2>
+        <div class="status"><span>Tag <b id="aDay">0,0</b></span><span class="phase" id="aPhase">Gesunde Homöostase</span></div>
+        <canvas class="marrow" id="aGrid" width="500" height="400"></canvas>
+        <div class="axisnote"><span>Endost (Stammzellnische)</span><span>Sinusoide (Blut) →</span></div>
+        <div class="legend" id="aLegend"></div>
+      </section>
+      <section class="panel">
+        <h2>Zellen je Reifungsstufe</h2>
+        <canvas id="aBars"></canvas>
+      </section>
+    </div>
+    <section class="panel">
+      <h2>Zeitverlauf</h2>
+      <canvas id="aLine"></canvas>
+      <div class="legend" id="aLineLegend"></div>
+    </section>
+  </div>
+</section>
+
+<!-- ================= TAB 2: GESUND + KLONE ================= -->
+<section id="tab-healthy" class="layout" hidden>
+  <aside class="panel controls">
+    <h3>Simulation</h3>
+    <div class="row-btns"><button class="btn primary" id="hPlay" type="button">Start</button><button class="btn" id="hReset" type="button">Neustart</button></div>
+    <div class="ctl"><label for="hSpeed">Tempo <output id="hSpeedO"></output></label><input type="range" id="hSpeed" min="1" max="16" step="1" value="3"></div>
+    <div class="ctl"><label for="hN">Stammzellen zu Beginn <output id="hNO"></output></label><input type="range" id="hN" min="3" max="20" step="1" value="15"><div class="hint">Jede Stammzelle bekommt eine eigene Farbe, die alle Nachkommen erben. Änderung startet neu.</div></div>
+    <div class="ctl"><label for="hSeed">Zufallsstartwert <output id="hSeedO"></output></label><input type="range" id="hSeed" min="1" max="100" step="1" value="42"></div>
+    <h3>Färbung</h3>
+    <label class="toggle"><input type="radio" name="hColor" value="clone" checked> nach Klon (Herkunft)</label>
+    <label class="toggle"><input type="radio" name="hColor" value="stage"> nach Reifungsstufe</label>
+  </aside>
+  <div class="main">
+    <div class="two">
+      <section class="panel">
+        <h2>Klon-Territorien</h2>
+        <div class="status"><span>Stunde <b id="hTick">0</b> / 600</span><span>Aktive Klone <b id="hActive">0</b></span><span>Zellen <b id="hCells">0</b></span></div>
+        <canvas class="marrow" id="hGrid" width="500" height="400"></canvas>
+        <div class="axisnote"><span>Endost (Stammzellnische)</span><span>Sinusoide (Blut) →</span></div>
+        <div class="legend" id="hLegend"></div>
+      </section>
+      <section class="panel">
+        <h2>Muller-Plot: Anteil jedes Klons</h2>
+        <canvas id="hMuller"></canvas>
+        <p class="axisnote" style="display:block">Ohne jeden Selektionsvorteil verschwinden Klone allein durch Zufall (neutraler klonaler Drift).</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TAB 3: STATISTIK ================= -->
+<section id="tab-stats" class="layout" hidden>
+  <aside class="panel controls">
+    <h3>Mehrfach-Auswertung</h3>
+    <div class="ctl"><label for="sN">Anzahl Läufe <output id="sNO"></output></label><input type="range" id="sN" min="3" max="30" step="1" value="10"></div>
+    <div class="ctl"><label for="sHi">Therapeutische ATRA-Dosis <output id="sHiO"></output></label><input type="range" id="sHi" min="0.01" max="0.5" step="0.01" value="0.28"></div>
+    <div class="ctl"><label for="sLo">Niedrige ATRA-Dosis <output id="sLoO"></output></label><input type="range" id="sLo" min="0" max="0.3" step="0.01" value="0.05"><div class="hint">Wahrscheinlichkeit pro Stunde, dass ein Blast ausreift.</div></div>
+    <button class="btn primary" id="sRun" type="button">Berechnen</button>
+    <div class="progress"><div id="sProg"></div></div>
+    <p class="hint" style="font-size:0.78rem;color:var(--muted)">Mutation bei Stunde 180, ATRA ab Stunde 420, Ende bei Stunde 750. Mittelwert ± Standardabweichung über alle Läufe.</p>
+  </aside>
+  <div class="main">
+    <div class="two">
+      <section class="panel"><h2>A · Zelldynamik</h2><canvas id="sA"></canvas><div class="legend" id="sAL"></div></section>
+      <section class="panel"><h2>B · Reifungsspektrum in drei Phasen</h2><canvas id="sB"></canvas><div class="legend" id="sBL"></div></section>
+      <section class="panel"><h2>C · Klonale Vielfalt</h2><canvas id="sC"></canvas><div class="legend" id="sCL"></div></section>
+      <section class="panel"><h2>D · Promyelozyten bei zwei ATRA-Dosen</h2><canvas id="sD"></canvas><div class="legend" id="sDL"></div></section>
+    </div>
+    <section class="panel"><h2>Kennzahlen</h2><div class="tablewrap"><table id="sTbl"></table></div></section>
+  </div>
+</section>
+
+<section class="panel about" style="margin-top:18px">
+  <h2>Über das Modell</h2>
+  <div class="cols">
+    <div>
+      <p>Das Knochenmark ist ein Gitter mit 40 × 50 Plätzen. Links liegt die Stammzellnische am Endost, rechts die Sinusoide, über die reife Zellen ins Blut gelangen. In jedem Zeitschritt kommt jede Zelle in zufälliger Reihenfolge an die Reihe. Sie kann sterben, reifen oder sich teilen. Eine Tochterzelle braucht einen freien Nachbarplatz. Gesunde Zellen teilen sich bevorzugt nach rechts.</p>
+      <ul>
+        <li>Stammzellen teilen sich überwiegend asymmetrisch: 88–90 % der Töchter sind Vorläufer, der Rest neue Stammzellen.</li>
+        <li>Vorläufer (GMP) vermehren sich bis zu vier Mal, dann werden sie zu Promyelozyten.</li>
+        <li>Myelozyten und Metamyelozyten bilden im Modell eine Stufe ohne Teilung. In Wirklichkeit teilt sich der Myelozyt noch, erst der Metamyelozyt ist postmitotisch. Reife Granulozyten verlassen nach einigen Tagen das Mark.</li>
+        <li>Leukämische Promyelozyten reifen nicht, sterben selten und teilen sich in alle Richtungen.</li>
+      </ul>
+    </div>
+    <div>
+      <p>Das Modell im Reiter „APL und ATRA“ rechnet in 3-Stunden-Schritten. ATRA baut sich über 3 Tage im Gewebe auf. Jeder Blast hat eine eigene Empfindlichkeit, etwa 30 % ruhen in der Nische und reagieren schwächer. Unter ATRA wächst eine innere Reifungsuhr. Ab dem Point of no Return teilt sich die Zelle nicht mehr, bei 1 wird sie zum Myelozyten.</p>
+      <p>Die Reiter „Gesunde Blutbildung“ und „Statistik“ rechnen in 1-Stunden-Schritten. In der Statistik reift ein Blast unter ATRA mit einer festen Wahrscheinlichkeit pro Stunde (Dosis).</p>
+      <p>Projekt von Ben Glück im Wahlfach Computational Physiology 2026. Diese Seite ist ein JavaScript-Port der Python-Skripte <code>apl_atra_angepasst.py</code>, <code>healthy_clonal_live.py</code> und <code>final_evaluation_10.py</code>. Der Zufallsgenerator unterscheidet sich von numpy, einzelne Läufe sehen daher anders aus. Die Mittelwerte über viele Läufe stimmen mit dem Python-Original überein. Lehrmodell, keine medizinische Aussage.</p>
+      <p>Korrektur: Im Python-Skript beginnt die Reifungsuhr einer neu geteilten Blasten-Tochter unter ATRA wieder bei 0. Die Blasten teilen sich dadurch ohne Ende weiter, und trotz ATRA bleiben etwa 1.300 Blasten im Mark. Auf dieser Seite erbt die Tochter die Uhr der Mutterzelle, wie es das Skript für gesunde Promyelozyten schon vorsieht. Damit verschwinden die Blasten 28 bis 37 Tage nach ATRA-Start, also im Remissionsfenster, das das Skript selbst markiert. Alle Raten sind unverändert. Der Schalter „Tochterzellen erben die Reifungsuhr“ zeigt das ursprüngliche Verhalten.</p>
+    </div>
+  </div>
+</section>
+</div>
+
+<script>
+// ===== Agentenbasiertes Knochenmarkmodell: JavaScript-Port von healthy_clonal_live.py, apl_atra_angepasst.py, final_evaluation_10.py =====
+const ABM = (() => {
+  const H = 40, W = 50, HSC = 1, GMP = 2, PROMYELO = 3, MYELO = 4, GRANULO = 5, APL_CLONE = -1;
+
+  function makeRng(seed) {   // mulberry32: reproduzierbarer Zufallsgenerator
+    let a = (seed >>> 0) + 0x9e3779b9;
+    return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function freeNeighbors(grid, x, y, biasRight) {
+    const out = [];
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && nx < H && ny >= 0 && ny < W && grid[nx * W + ny] === null) {
+        out.push(nx * W + ny);
+        if (biasRight && dy === 1) out.push(nx * W + ny);   // Drift Richtung Sinusoide (rechts)
+      }
+    }
+    return out;
+  }
+  function seedHSCs(grid, rng, n, make) {
+    for (let i = 1; i <= n; i++) for (;;) {
+      const x = Math.floor(rng() * H), y = Math.floor(rng() * 8);
+      if (grid[x * W + y] === null) { grid[x * W + y] = make(x, y, i); break; }
+    }
+  }
+  function sweep(grid, rng, stepFn) {
+    const agents = [];
+    for (let i = 0; i < H * W; i++) if (grid[i] !== null) agents.push(grid[i]);
+    for (let i = agents.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = agents[i]; agents[i] = agents[j]; agents[j] = t; }
+    for (const a of agents) if (grid[a.x * W + a.y] === a) stepFn(a);
+  }
+  function placeChild(grid, rng, a, bias, make) {
+    const free = freeNeighbors(grid, a.x, a.y, bias);
+    if (!free.length) return null;
+    const k = free[Math.floor(rng() * free.length)], nx = Math.floor(k / W), ny = k % W;
+    const c = make(nx, ny); grid[k] = c; return c;
+  }
+  function mutate(grid, rng, n, make) {
+    const cand = [];
+    for (let i = 0; i < H * W; i++) { const c = grid[i]; if (c !== null && (c.stage === GMP || c.stage === PROMYELO)) cand.push(i); }
+    if (cand.length < n) return;
+    for (let i = 0; i < n; i++) { const j = i + Math.floor(rng() * (cand.length - i)); const t = cand[i]; cand[i] = cand[j]; cand[j] = t; }
+    for (let i = 0; i < n; i++) { const k = cand[i]; grid[k] = make(Math.floor(k / W), k % W); }
+  }
+  const cell = (stage, x, y, clone) => ({ stage, x, y, clone, age: 0, divisions: 0 });
+
+  // Gemeinsame gesunde Stufen GMP, Myelo, Granulo (Parameter je nach Skript)
+  function stepGMP(grid, rng, a, mk) {
+    if (rng() < 0.01) { grid[a.x * W + a.y] = null; return; }
+    if (a.divisions >= 4 || (a.age >= 8 && rng() < 0.22)) { a.stage = PROMYELO; a.age = 0; return; }
+    if (a.age >= 6 && rng() < 0.32) {
+      const c = placeChild(grid, rng, a, true, (x, y) => mk(GMP, x, y, a.clone));
+      if (c) { c.divisions = a.divisions + 1; a.divisions++; a.age = 0; }
+    }
+  }
+
+  // ---------- 1) Gesunde Myelopoese mit Klon-Verfolgung (healthy_clonal_live.py), 1 Tick = 1 h
+  function Healthy(o = {}) {
+    const rng = makeRng(o.seed ?? 42), nH = o.nHSC ?? 15, grid = new Array(H * W).fill(null);
+    seedHSCs(grid, rng, nH, (x, y, i) => cell(HSC, x, y, i));
+    let tick = 0;
+    function step(a) {
+      a.age++;
+      if (a.stage === HSC) {
+        if (rng() < 0.002) { grid[a.x * W + a.y] = null; return; }
+        if (a.age >= 10 && rng() < 0.13) {
+          const c = placeChild(grid, rng, a, true, (x, y) => cell(0, x, y, a.clone));
+          if (c) { c.stage = rng() < 0.88 ? GMP : HSC; a.age = 0; }
+        }
+      } else if (a.stage === GMP) stepGMP(grid, rng, a, cell);
+      else if (a.stage === PROMYELO) {
+        if (rng() < 0.01) { grid[a.x * W + a.y] = null; return; }
+        if (a.age >= 8 && rng() < 0.28) { a.stage = MYELO; a.age = 0; return; }
+        if (a.divisions < 5 && a.age >= 7 && rng() < 0.16) {
+          const c = placeChild(grid, rng, a, true, (x, y) => cell(PROMYELO, x, y, a.clone));
+          if (c) { c.divisions = a.divisions + 1; a.divisions++; a.age = 0; }
+        }
+      } else if (a.stage === MYELO) {
+        if (rng() < 0.01) { grid[a.x * W + a.y] = null; return; }
+        if (a.age >= 8 && rng() < 0.28) { a.stage = GRANULO; a.age = 0; }
+      } else if (a.stage === GRANULO) {
+        if (a.age >= 16 && rng() < 0.25) grid[a.x * W + a.y] = null;
+      }
+    }
+    return { grid, nClones: nH, get tick() { return tick; }, step() { sweep(grid, rng, step); tick++; } };
+  }
+
+  // ---------- 2) APL mit realistischer ATRA-Kinetik (apl_atra_angepasst.py), 1 Tick = 3 h
+  function Apl(o = {}) {
+    const P = Object.assign({ seed: 42, nHSC: 20, dayMut: 25, dayAtra: 55, atraOn: true, clock: 0.018, pnr: 0.45, nMut: 4, inherit: true }, o);
+    const rng = makeRng(P.seed), grid = new Array(H * W).fill(null);
+    const mk = (stage, x, y, leuk) => {
+      const c = cell(stage, x, y, 0); c.leuk = !!leuk; c.clock = 0;
+      c.quiet = rng() < 0.30; c.sens = c.quiet ? 0.18 + 0.22 * rng() : 0.65 + 0.60 * rng(); return c;
+    };
+    seedHSCs(grid, rng, P.nHSC, (x, y) => mk(HSC, x, y));
+    let tick = 0;
+    function step(a, atra, daysOn) {
+      a.age++;
+      if (a.stage === HSC) {
+        if (rng() < 0.002) { grid[a.x * W + a.y] = null; return; }
+        if (a.age >= 10 && rng() < 0.12) {
+          const free = freeNeighbors(grid, a.x, a.y, true);
+          if (free.length) { const k = free[Math.floor(rng() * free.length)]; const st = rng() < 0.90 ? GMP : HSC; grid[k] = mk(st, Math.floor(k / W), k % W); a.age = 0; }
+        }
+      } else if (a.stage === GMP) stepGMP(grid, rng, a, (st, x, y) => mk(st, x, y));
+      else if (a.stage === PROMYELO) {
+        if (a.leuk) {
+          if (rng() < 0.004) { grid[a.x * W + a.y] = null; return; }
+          if (atra) {
+            const bio = Math.min(1, 0.35 + 0.65 * (daysOn / 3));
+            if (a.quiet && rng() < 0.012) { a.quiet = false; a.sens = 0.65 + 0.50 * rng(); }
+            a.clock += P.clock * a.sens * bio;
+            if (a.clock >= 1) { a.stage = MYELO; a.leuk = false; a.age = 0; return; }
+          }
+          const canDiv = !atra || a.clock < P.pnr, pDiv = a.quiet ? 0.14 : 0.28;
+          if (canDiv && a.age >= 7 && rng() < pDiv) {
+            const free = freeNeighbors(grid, a.x, a.y, false);
+            if (free.length) { const k = free[Math.floor(rng() * free.length)]; const c = mk(PROMYELO, Math.floor(k / W), k % W, true); if (P.inherit) c.clock = a.clock; grid[k] = c; a.age = 0; }
+          }
+        } else {
+          if (rng() < 0.01) { grid[a.x * W + a.y] = null; return; }
+          a.clock += 0.085;
+          if (a.clock >= 1) { a.stage = MYELO; a.age = 0; return; }
+          if (a.clock < P.pnr && a.divisions < 5 && a.age >= 7 && rng() < 0.18) {
+            const free = freeNeighbors(grid, a.x, a.y, true);
+            if (free.length) { const k = free[Math.floor(rng() * free.length)]; const c = mk(PROMYELO, Math.floor(k / W), k % W); c.divisions = a.divisions + 1; c.clock = a.clock * 0.5; grid[k] = c; a.divisions++; a.age = 0; }
+          }
+        }
+      } else if (a.stage === MYELO) {
+        if (rng() < 0.008) { grid[a.x * W + a.y] = null; return; }
+        if (a.age >= 12 && rng() < 0.18) { a.stage = GRANULO; a.age = 0; }
+      } else if (a.stage === GRANULO) {
+        if (a.age >= 20 && rng() < 0.22) grid[a.x * W + a.y] = null;
+      }
+    }
+    return {
+      grid, P, get tick() { return tick; }, get day() { return tick / 8; },
+      step() {
+        const day = tick / 8, atra = P.atraOn && tick >= P.dayAtra * 8, daysOn = Math.max(0, day - P.dayAtra);
+        if (tick === P.dayMut * 8) mutate(grid, rng, P.nMut, (x, y) => mk(PROMYELO, x, y, true));
+        sweep(grid, rng, a => step(a, atra, daysOn)); tick++;
+      },
+    };
+  }
+
+  // ---------- 3) Vereinfachtes Modell fuer die Mehrfach-Auswertung (final_evaluation_10.py), 1 Tick = 1 h
+  function Eval(o = {}) {
+    const P = Object.assign({ seed: 0, nHSC: 15, tickMut: 180, tickAtra: 420, dose: 0.28 }, o);
+    const rng = makeRng(P.seed), grid = new Array(H * W).fill(null);
+    const mk = (stage, x, y, clone, leuk) => { const c = cell(stage, x, y, clone); c.leuk = !!leuk; c.sens = 0.75 + 0.5 * rng(); return c; };
+    seedHSCs(grid, rng, P.nHSC, (x, y, i) => mk(HSC, x, y, i));
+    let tick = 0;
+    function step(a, atra) {
+      a.age++;
+      if (a.stage === HSC) {
+        if (rng() < 0.002) { grid[a.x * W + a.y] = null; return; }
+        if (a.age >= 10 && rng() < 0.12) {
+          const free = freeNeighbors(grid, a.x, a.y, true);
+          if (free.length) { const k = free[Math.floor(rng() * free.length)]; const st = rng() < 0.90 ? GMP : HSC; grid[k] = mk(st, Math.floor(k / W), k % W, a.clone); a.age = 0; }
+        }
+      } else if (a.stage === GMP) stepGMP(grid, rng, a, mk);
+      else if (a.stage === PROMYELO) {
+        if (a.leuk) {
+          if (!atra) {
+            if (rng() < 0.006) { grid[a.x * W + a.y] = null; return; }
+            if (a.age >= 6 && rng() < 0.30) { const c = placeChild(grid, rng, a, false, (x, y) => mk(PROMYELO, x, y, APL_CLONE, true)); if (c) a.age = 0; }
+          } else {
+            if (a.age >= 4 && rng() < P.dose * a.sens) { a.stage = MYELO; a.leuk = false; a.age = 0; return; }
+            if (a.age >= 8 && rng() < 0.04) { const c = placeChild(grid, rng, a, true, (x, y) => mk(PROMYELO, x, y, APL_CLONE, true)); if (c) a.age = 0; }
+          }
+        } else {
+          if (rng() < 0.01) { grid[a.x * W + a.y] = null; return; }
+          if (a.age >= 8 && rng() < 0.28) { a.stage = MYELO; a.age = 0; return; }
+          if (a.divisions < 5 && a.age >= 7 && rng() < 0.16) {
+            const c = placeChild(grid, rng, a, true, (x, y) => mk(PROMYELO, x, y, a.clone));
+            if (c) { c.divisions = a.divisions + 1; a.divisions++; a.age = 0; }
+          }
+        }
+      } else if (a.stage === MYELO) {
+        if (rng() < 0.01) { grid[a.x * W + a.y] = null; return; }
+        if (a.age >= 8 && rng() < 0.28) { a.stage = GRANULO; a.age = 0; }
+      } else if (a.stage === GRANULO) {
+        if (a.age >= 16 && rng() < 0.25) grid[a.x * W + a.y] = null;
+      }
+    }
+    return {
+      grid, P, get tick() { return tick; },
+      step() {
+        const atra = tick >= P.tickAtra && P.dose > 0;
+        if (tick === P.tickMut) mutate(grid, rng, 4, (x, y) => mk(PROMYELO, x, y, APL_CLONE, true));
+        sweep(grid, rng, a => step(a, atra)); tick++;
+      },
+    };
+  }
+  // Ein kompletter Auswertungslauf (run_single_simulation)
+  function runEval(seed, dose, total = 750, o = {}) {
+    const s = Eval(Object.assign({ seed, dose }, o)), ts = { early: [], prom: [], gran: [], clones: [], st: {} };
+    for (let t = 0; t < total; t++) {
+      s.step();
+      const sc = [0, 0, 0, 0, 0], cl = new Set();
+      for (const c of s.grid) if (c !== null) { sc[c.stage - 1]++; if (c.clone !== APL_CLONE) cl.add(c.clone); }
+      ts.early.push(sc[0] + sc[1]); ts.prom.push(sc[2]); ts.gran.push(sc[4]); ts.clones.push(cl.size);
+      if (t === s.P.tickMut - 1) ts.st.health = sc; else if (t === s.P.tickAtra - 1) ts.st.apl = sc; else if (t === total - 1) ts.st.rem = sc;
+    }
+    return ts;
+  }
+  function counts(grid) { const c = [0, 0, 0, 0, 0, 0]; let leuk = 0; for (const a of grid) if (a !== null) { c[a.stage]++; if (a.leuk) leuk++; } c.leuk = leuk; return c; }
+
+  return { H, W, HSC, GMP, PROMYELO, MYELO, GRANULO, APL_CLONE, Healthy, Apl, Eval, runEval, counts };
+})();
+
+</script>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const nf = (v, d = 0) => v.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
+const STAGES = [
+  { n: "Stammzelle (HSC)", d: "selten, langlebig, erneuert sich selbst", c: "--s1", s: "1 HSC" },
+  { n: "Vorläufer (GMP)", d: "vermehrt sich schnell", c: "--s2", s: "2 GMP" },
+  { n: "Promyelozyt", d: "hier blockiert PML-RARα die Reifung", c: "--s3", s: "3 Promyelo" },
+  { n: "Myelo-/Metamyelozyt", d: "reift weiter (im Modell ohne Teilung)", c: "--s4", s: "4 Myelo" },
+  { n: "Granulozyt", d: "reif, geht ins Blut", c: "--s5", s: "5 Granulo" },
+];
+$("stageCards").innerHTML = STAGES.map(s => `<div class="stage" style="--c:var(${s.c})"><b>${s.n}</b>${s.d}</div>`).join("");
+const CLONE_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf", "#aec7e8", "#ffbb78", "#98df8a", "#ff9896", "#c5b0d5", "#c49c94", "#f7b6d2", "#c7c7c7", "#dbdb8d", "#9edae5"];
+
+// ---------- Zeichenhilfen (Canvas)
+function setup(cv, aspect) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth || 500, h = Math.round(w * aspect);
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + "px"; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); return { g, w, h };
+}
+function nice(max) { if (max <= 0) return 1; const p = 10 ** Math.floor(Math.log10(max / 5)), m = max / 5 / p; return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p; }
+function frame(g, w, h, xmax, ymax, xlabel, ylabel, xstep) {
+  const L = 52, R = 10, T = 10, B = 38, pw = w - L - R, ph = h - T - B;
+  const ys = nice(ymax); ymax = Math.max(ys, Math.ceil(ymax / ys) * ys);
+  const X = x => L + x / xmax * pw, Y = y => T + ph - y / ymax * ph;
+  g.font = "12px system-ui, sans-serif"; g.lineWidth = 1;
+  for (let v = 0; v <= ymax + 1e-9; v += ys) { g.strokeStyle = css("--grid"); g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(L + pw, Y(v)); g.stroke(); g.fillStyle = css("--ink2"); g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(nf(v, ys < 1 ? 1 : 0), L - 6, Y(v)); }
+  g.textAlign = "center"; g.textBaseline = "top";
+  for (let v = 0; v <= xmax + 1e-9; v += xstep) g.fillText(nf(v), X(v), T + ph + 5);
+  g.fillText(xlabel, L + pw / 2, h - 15);
+  g.save(); g.translate(12, T + ph / 2); g.rotate(-Math.PI / 2); g.fillText(ylabel, 0, -6); g.restore();
+  g.strokeStyle = css("--line"); g.beginPath(); g.moveTo(L, T + ph); g.lineTo(L + pw, T + ph); g.stroke();
+  return { X, Y, L, T, pw, ph, ymax };
+}
+function lineChart(cv, o) {
+  const { g, w, h } = setup(cv, o.aspect || 0.5);
+  let ymax = o.ymax || 1; if (!o.fixedY) for (const s of o.series) for (let i = 0; i < s.y.length; i++) ymax = Math.max(ymax, s.y[i] + (s.sd ? s.sd[i] : 0));
+  const f = frame(g, w, h, o.xmax, ymax * 1.04, o.xlabel, o.ylabel, o.xstep);
+  for (const sp of o.spans || []) { g.fillStyle = sp.color; g.fillRect(f.X(sp.x0), f.T, f.X(sp.x1) - f.X(sp.x0), f.ph); }
+  for (const s of o.series) if (s.sd) {
+    g.fillStyle = s.color; g.globalAlpha = 0.16; g.beginPath();
+    s.y.forEach((v, i) => { const x = f.X(s.x0 + i * s.dx); i ? g.lineTo(x, f.Y(Math.min(f.ymax, v + s.sd[i]))) : g.moveTo(x, f.Y(Math.min(f.ymax, v + s.sd[i]))); });
+    for (let i = s.y.length - 1; i >= 0; i--) g.lineTo(f.X(s.x0 + i * s.dx), f.Y(Math.max(0, s.y[i] - s.sd[i])));
+    g.closePath(); g.fill(); g.globalAlpha = 1;
+  }
+  for (const v of o.vlines || []) {
+    g.strokeStyle = v.color; g.lineWidth = 1.4; g.setLineDash(v.dash || []); g.beginPath(); g.moveTo(f.X(v.x), f.T); g.lineTo(f.X(v.x), f.T + f.ph); g.stroke(); g.setLineDash([]);
+    if (v.label) { g.fillStyle = v.color; g.font = "600 11px system-ui, sans-serif"; g.textAlign = "left"; g.textBaseline = "top"; g.fillText(v.label, f.X(v.x) + 4, f.T + 2); }
+  }
+  for (const s of o.series) {
+    g.strokeStyle = s.color; g.lineWidth = s.lw || 2; g.setLineDash(s.dash || []); g.lineJoin = "round"; g.beginPath();
+    s.y.forEach((v, i) => { const x = f.X(s.x0 + i * s.dx), y = f.Y(Math.min(v, f.ymax)); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]);
+  }
+}
+function barChart(cv, o) {
+  const { g, w, h } = setup(cv, o.aspect || 0.62);
+  let ymax = o.ymin || 1; for (const gr of o.groups) gr.vals.forEach((v, i) => ymax = Math.max(ymax, v + (gr.errs ? gr.errs[i] : 0)));
+  const L = 52, R = 10, T = 10, B = 30, pw = w - L - R, ph = h - T - B, ys = nice(ymax * 1.05); ymax = Math.ceil(ymax * 1.05 / ys) * ys;
+  const Y = v => T + ph - v / ymax * ph; g.font = "12px system-ui, sans-serif";
+  for (let v = 0; v <= ymax + 1e-9; v += ys) { g.strokeStyle = css("--grid"); g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(L + pw, Y(v)); g.stroke(); g.fillStyle = css("--ink2"); g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(nf(v), L - 6, Y(v)); }
+  g.save(); g.translate(12, T + ph / 2); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.textBaseline = "top"; g.fillText(o.ylabel, 0, -6); g.restore();
+  const n = o.labels.length, slot = pw / n, ng = o.groups.length, bw = slot * 0.78 / ng;
+  o.labels.forEach((lab, i) => {
+    o.groups.forEach((gr, j) => {
+      const x = L + i * slot + slot * 0.11 + j * bw, v = gr.vals[i];
+      g.fillStyle = gr.colors ? gr.colors[i] : gr.color; g.fillRect(x, Y(v), bw - 2, T + ph - Y(v));
+      if (gr.errs) { const e = gr.errs[i]; g.strokeStyle = css("--ink"); g.lineWidth = 1; g.beginPath(); g.moveTo(x + bw / 2 - 1, Y(v + e)); g.lineTo(x + bw / 2 - 1, Y(Math.max(0, v - e))); g.moveTo(x + bw / 2 - 4, Y(v + e)); g.lineTo(x + bw / 2 + 2, Y(v + e)); g.stroke(); }
+      if (o.showVals) { g.fillStyle = css("--ink"); g.textAlign = "center"; g.textBaseline = "bottom"; g.fillText(nf(v), x + bw / 2 - 1, Y(v) - 2); }
+    });
+    g.fillStyle = css("--ink2"); g.textAlign = "center"; g.textBaseline = "top"; g.fillText(lab, L + (i + 0.5) * slot, T + ph + 6);
+  });
+  g.strokeStyle = css("--line"); g.beginPath(); g.moveTo(L, T + ph); g.lineTo(L + pw, T + ph); g.stroke();
+}
+function drawGrid(cv, grid, colorOf) {
+  const g = cv.getContext("2d"), cw = cv.width / ABM.W, ch = cv.height / ABM.H;
+  g.fillStyle = css("--empty"); g.fillRect(0, 0, cv.width, cv.height);
+  for (let i = 0; i < grid.length; i++) { const c = grid[i]; if (c === null) continue; g.fillStyle = colorOf(c); g.fillRect((i % ABM.W) * cw, Math.floor(i / ABM.W) * ch, cw - 0.6, ch - 0.6); }
+}
+const legend = (host, items) => host.innerHTML = items.map(i => `<span>${i.line ? `<i class="ln ${i.line}" style="border-color:${i.color}"></i>` : `<i class="sw" style="background:${i.color}"></i>`}${i.label}</span>`).join("");
+const stageCol = () => [null, css("--s1"), css("--s2"), css("--s3"), css("--s4"), css("--s5")];
+function bindRange(id, fmt, onInput) { const el = $(id), out = $(id + "O"); const show = () => out.textContent = fmt(+el.value); show(); el.addEventListener("input", () => { show(); onInput && onInput(+el.value); }); return el; }
+
+// ================= TAB APL =================
+const A = { sim: null, hist: null, running: false, raf: 0 };
+function aParams() { return { seed: +$("aSeed").value, dayMut: +$("aMut").value, dayAtra: +$("aAtra").value, atraOn: $("aOn").checked, clock: +$("aClock").value, pnr: +$("aPnr").value, inherit: $("aInh").checked }; }
+function aReset() { A.sim = ABM.Apl(aParams()); A.hist = { early: [], prom: [], leuk: [], mat: [] }; aRecord(); aDraw(); }
+function aRecord() { const c = ABM.counts(A.sim.grid); A.hist.early.push(c[1] + c[2]); A.hist.prom.push(c[3]); A.hist.leuk.push(c.leuk); A.hist.mat.push(c[4] + c[5]); A.counts = c; }
+function aDraw() {
+  const sc = stageCol(), hi = $("aHi").checked, apl = css("--apl"), P = A.sim.P, day = A.sim.day;
+  drawGrid($("aGrid"), A.sim.grid, c => hi && c.leuk ? apl : sc[c.stage]);
+  $("aDay").textContent = nf(day, 1);
+  $("aPhase").textContent = day < P.dayMut ? "Gesunde Homöostase" : !P.atraOn || day < P.dayAtra ? `APL-Progression · Tag ${Math.floor(day - P.dayMut)} seit Mutation` : `ATRA-Therapie · Tag ${Math.floor(day - P.dayAtra)} der Induktion`;
+  const c = A.counts;
+  barChart($("aBars"), { labels: STAGES.map(s => s.s), groups: [{ vals: [c[1], c[2], c[3], c[4], c[5]], colors: sc.slice(1) }], ylabel: "Zellzahl im Mark", ymin: 400, showVals: true, aspect: 0.8 });
+  const series = [
+    { y: A.hist.early, x0: 0, dx: 1 / 8, color: sc[2], lw: 1.8 }, { y: A.hist.prom, x0: 0, dx: 1 / 8, color: sc[3], lw: 2.4 },
+    { y: A.hist.leuk, x0: 0, dx: 1 / 8, color: apl, lw: 1.6, dash: [4, 3] }, { y: A.hist.mat, x0: 0, dx: 1 / 8, color: sc[5], lw: 2.2 }];
+  const vl = [{ x: P.dayMut, color: css("--mut"), dash: [2, 3], label: "PML-RARα" }];
+  if (P.atraOn) vl.push({ x: P.dayAtra, color: css("--atra"), dash: [6, 4], label: "ATRA" });
+  lineChart($("aLine"), { series, xmax: 120, xstep: 10, xlabel: "Zeit (Tage)", ylabel: "Zellzahl", ymax: 400, vlines: vl, aspect: 0.36,
+    spans: P.atraOn ? [{ x0: Math.min(120, P.dayAtra + 28), x1: Math.min(120, P.dayAtra + 42), color: css("--rem") }] : [] });
+}
+function aLegends() {
+  const sc = stageCol();
+  legend($("aLegend"), STAGES.map((s, i) => ({ color: sc[i + 1], label: s.s })).concat($("aHi").checked ? [{ color: css("--apl"), label: "APL-Blast" }] : []));
+  legend($("aLineLegend"), [{ color: sc[2], line: " ", label: "Vorläufer (HSC + GMP)" }, { color: sc[3], line: " ", label: "Promyelozyten gesamt" }, { color: css("--apl"), line: "dash", label: "davon APL-Blasten" },
+    { color: sc[5], line: " ", label: "Reifende und Granulozyten (4 + 5)" }, { color: css("--rem"), label: "erwartetes Remissionsfenster (Tag 28–42 nach ATRA-Start)" }]);
+}
+function aLoop() {
+  if (!A.running) return;
+  const n = +$("aSpeed").value;
+  for (let i = 0; i < n && A.sim.tick < 960; i++) { A.sim.step(); aRecord(); }
+  aDraw();
+  if (A.sim.tick >= 960) { A.running = false; $("aPlay").textContent = "Start"; return; }
+  A.raf = requestAnimationFrame(aLoop);
+}
+$("aPlay").onclick = () => { if (A.sim.tick >= 960) aReset(); A.running = !A.running; $("aPlay").textContent = A.running ? "Pause" : "Weiter"; if (A.running) aLoop(); };
+$("aReset").onclick = () => { A.running = false; cancelAnimationFrame(A.raf); $("aPlay").textContent = "Start"; aReset(); };
+bindRange("aSpeed", v => v * 3 + " h pro Bild");
+bindRange("aMut", v => v, () => { const r = A.running; $("aReset").click(); if (r) $("aPlay").click(); });
+bindRange("aSeed", v => v, () => { const r = A.running; $("aReset").click(); if (r) $("aPlay").click(); });
+const live = () => { Object.assign(A.sim.P, { dayAtra: +$("aAtra").value, atraOn: $("aOn").checked, clock: +$("aClock").value, pnr: +$("aPnr").value, inherit: $("aInh").checked }); aLegends(); aDraw(); };
+$("aInh").onchange = live;
+bindRange("aAtra", v => v, live); bindRange("aClock", v => nf(v, 3), live); bindRange("aPnr", v => nf(v, 2), live);
+$("aOn").onchange = live; $("aHi").onchange = () => { aLegends(); aDraw(); };
+
+// ================= TAB GESUND =================
+const Hs = { sim: null, hist: null, running: false, raf: 0 };
+function hReset() { Hs.sim = ABM.Healthy({ seed: +$("hSeed").value, nHSC: +$("hN").value }); Hs.hist = []; hRecord(); hDraw(); hLegend(); }
+function hRecord() { const c = new Array(Hs.sim.nClones + 1).fill(0); for (const x of Hs.sim.grid) if (x) c[x.clone]++; Hs.hist.push(c); Hs.last = c; }
+function hMode() { return document.querySelector('input[name="hColor"]:checked').value; }
+function hDraw() {
+  const sc = stageCol(), mode = hMode();
+  drawGrid($("hGrid"), Hs.sim.grid, c => mode === "clone" ? CLONE_COLORS[(c.clone - 1) % 20] : sc[c.stage]);
+  const tot = Hs.last.reduce((s, v) => s + v, 0);
+  $("hTick").textContent = Hs.sim.tick; $("hActive").textContent = Hs.last.slice(1).filter(v => v > 0).length + " / " + Hs.sim.nClones; $("hCells").textContent = tot;
+  // Muller-Plot
+  const cv = $("hMuller"), { g, w, h } = setup(cv, 0.8), f = frame(g, w, h, 600, 100, "Zeit (Stunden)", "Anteil an allen Zellen (%)", 100);
+  const T = Hs.hist.length, cum = new Float32Array(T);
+  for (let k = 1; k <= Hs.sim.nClones; k++) {
+    g.fillStyle = CLONE_COLORS[(k - 1) % 20]; g.beginPath();
+    for (let t = 0; t < T; t++) { const s = Hs.hist[t].reduce((a, b) => a + b, 0) || 1; const y = f.Y(100 * cum[t] / s); t ? g.lineTo(f.X(t), y) : g.moveTo(f.X(t), y); }
+    for (let t = T - 1; t >= 0; t--) { const s = Hs.hist[t].reduce((a, b) => a + b, 0) || 1; cum[t] += Hs.hist[t][k]; g.lineTo(f.X(t), f.Y(100 * cum[t] / s)); }
+    g.closePath(); g.fill();
+  }
+}
+function hLegend() {
+  const sc = stageCol();
+  legend($("hLegend"), hMode() === "clone" ? Array.from({ length: Hs.sim.nClones }, (_, i) => ({ color: CLONE_COLORS[i % 20], label: "Klon " + (i + 1) })) : STAGES.map((s, i) => ({ color: sc[i + 1], label: s.s })));
+}
+function hLoop() {
+  if (!Hs.running) return;
+  for (let i = 0, n = +$("hSpeed").value; i < n && Hs.sim.tick < 600; i++) { Hs.sim.step(); hRecord(); }
+  hDraw();
+  if (Hs.sim.tick >= 600) { Hs.running = false; $("hPlay").textContent = "Start"; return; }
+  Hs.raf = requestAnimationFrame(hLoop);
+}
+$("hPlay").onclick = () => { if (Hs.sim.tick >= 600) hReset(); Hs.running = !Hs.running; $("hPlay").textContent = Hs.running ? "Pause" : "Weiter"; if (Hs.running) hLoop(); };
+$("hReset").onclick = () => { Hs.running = false; cancelAnimationFrame(Hs.raf); $("hPlay").textContent = "Start"; hReset(); };
+bindRange("hSpeed", v => v + " h pro Bild");
+bindRange("hN", v => v, () => $("hReset").click()); bindRange("hSeed", v => v, () => $("hReset").click());
+document.querySelectorAll('input[name="hColor"]').forEach(r => r.onchange = () => { hLegend(); hDraw(); });
+
+// ================= TAB STATISTIK =================
+let S = null, sBusy = false;
+bindRange("sN", v => v); bindRange("sHi", v => nf(v, 2)); bindRange("sLo", v => nf(v, 2));
+const meanSd = arrs => { const n = arrs.length, L = arrs[0].length, m = new Array(L).fill(0), s = new Array(L).fill(0);
+  for (const a of arrs) for (let i = 0; i < L; i++) m[i] += a[i] / n;
+  for (const a of arrs) for (let i = 0; i < L; i++) s[i] += (a[i] - m[i]) ** 2 / n;
+  return { m, s: s.map(Math.sqrt) }; };
+function sRun() {
+  if (sBusy) return; sBusy = true; $("sRun").disabled = true;
+  const N = +$("sN").value, hi = +$("sHi").value, lo = +$("sLo").value, jobs = [];
+  for (let s = 0; s < N; s++) jobs.push([s, hi], [s, lo]);
+  const res = { hi: [], lo: [] }; let k = 0;
+  const next = () => {
+    const t0 = performance.now();
+    while (k < jobs.length && performance.now() - t0 < 40) { const [seed, d] = jobs[k]; res[d === hi && k % 2 === 0 ? "hi" : "lo"].push(ABM.runEval(seed, d)); k++; }
+    $("sProg").style.width = (100 * k / jobs.length) + "%";
+    if (k < jobs.length) setTimeout(next, 0); else { S = { res, hi, lo, N }; sBusy = false; $("sRun").disabled = false; sDraw(); }
+  };
+  next();
+}
+function sDraw() {
+  if (!S) return;
+  const R = S.res.hi, sc = stageCol(), early = meanSd(R.map(r => r.early)), prom = meanSd(R.map(r => r.prom)), gran = meanSd(R.map(r => r.gran)), cl = meanSd(R.map(r => r.clones)), pl = meanSd(S.res.lo.map(r => r.prom));
+  const vl = [{ x: 180, color: css("--mut"), dash: [2, 3], label: "Mutation" }, { x: 420, color: css("--atra"), dash: [6, 4], label: "ATRA" }];
+  const ser = (o, color, lw = 2) => ({ y: o.m, sd: o.s, x0: 0, dx: 1, color, lw });
+  lineChart($("sA"), { series: [ser(early, sc[2]), ser(prom, sc[3], 2.3), ser(gran, sc[5])], xmax: 750, xstep: 150, xlabel: "Zeit (Stunden)", ylabel: "Zellzahl", vlines: vl, aspect: 0.62 });
+  legend($("sAL"), [{ color: sc[2], line: " ", label: "Vorläufer (HSC + GMP)" }, { color: sc[3], line: " ", label: "Promyelozyten (inkl. APL)" }, { color: sc[5], line: " ", label: "reife Granulozyten" }]);
+  const st = k => meanSd(R.map(r => r.st[k]));
+  const sh = st("health"), sa = st("apl"), sr = st("rem");
+  barChart($("sB"), { labels: STAGES.map(s => s.s), groups: [{ vals: sh.m, errs: sh.s, color: css("--s1") }, { vals: sa.m, errs: sa.s, color: css("--s3") }, { vals: sr.m, errs: sr.s, color: css("--s2") }], ylabel: "Zellzahl", aspect: 0.62 });
+  legend($("sBL"), [{ color: css("--s1"), label: "gesund (Stunde 179)" }, { color: css("--s3"), label: "APL unbehandelt (Stunde 419)" }, { color: css("--s2"), label: "nach ATRA (Stunde 749)" }]);
+  lineChart($("sC"), { series: [ser(cl, css("--clones"), 2.3)], xmax: 750, xstep: 150, xlabel: "Zeit (Stunden)", ylabel: "aktive gesunde Klone", ymax: 16, fixedY: true, vlines: vl, aspect: 0.62 });
+  legend($("sCL"), [{ color: css("--clones"), line: " ", label: "Anzahl gesunder Stammzell-Klone mit Nachkommen (von 15)" }]);
+  lineChart($("sD"), { series: [ser(pl, css("--lo"), 2.2), ser(prom, sc[3], 2.2)], xmax: 750, xstep: 150, xlabel: "Zeit (Stunden)", ylabel: "Promyelozyten", vlines: vl, aspect: 0.62 });
+  legend($("sDL"), [{ color: css("--lo"), line: " ", label: "niedrige Dosis (" + nf(S.lo, 2) + ")" }, { color: sc[3], line: " ", label: "therapeutische Dosis (" + nf(S.hi, 2) + ")" }]);
+  let pk = 420; for (let t = 420; t < 500; t++) if (gran.m[t] > gran.m[pk]) pk = t;
+  const ms = (o, i) => nf(o.m[i], 1) + " ± " + nf(o.s[i], 1), pe = (k, i) => { const o = st(k); return nf(o.m[i], 1) + " ± " + nf(o.s[i], 1); };
+  const plEnd = nf(pl.m[749], 1) + " ± " + nf(pl.s[749], 1);
+  $("sTbl").innerHTML = `<thead><tr><th>Phase</th><th>Kennzahl</th><th>Wert (Mittelwert ± SD, N = ${S.N})</th></tr></thead><tbody>
+    <tr><td>Gesund (Stunde 179)</td><td>reife Granulozyten</td><td>${pe("health", 4)}</td></tr>
+    <tr><td></td><td>aktive gesunde Klone (von 15)</td><td>${ms(cl, 179)}</td></tr>
+    <tr><td>APL unbehandelt (Stunde 419)</td><td>Promyelozyten</td><td>${pe("apl", 2)}</td></tr>
+    <tr><td></td><td>reife Granulozyten</td><td>${pe("apl", 4)}</td></tr>
+    <tr><td></td><td>aktive gesunde Klone</td><td>${ms(cl, 419)}</td></tr>
+    <tr><td>ATRA (Dosis ${nf(S.hi, 2)})</td><td>Granulozyten-Spitze (Differenzierungsschub), Stunde ${pk}</td><td>${ms(gran, pk)}</td></tr>
+    <tr><td></td><td>Promyelozyten am Ende (Stunde 749)</td><td>${pe("rem", 2)}</td></tr>
+    <tr><td></td><td>reife Granulozyten am Ende</td><td>${pe("rem", 4)}</td></tr>
+    <tr><td></td><td>überlebende gesunde Klone</td><td>${ms(cl, 749)}</td></tr>
+    <tr><td>ATRA (Dosis ${nf(S.lo, 2)})</td><td>Promyelozyten am Ende</td><td>${plEnd}</td></tr></tbody>`;
+}
+$("sRun").onclick = sRun;
+
+// ================= Tabs, Thema, Start =================
+let statsDone = false;
+document.querySelector(".tabs").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  for (const t of ["apl", "healthy", "stats"]) $("tab-" + t).hidden = t !== b.dataset.tab;
+  if (b.dataset.tab === "healthy") hDraw();
+  if (b.dataset.tab === "apl") aDraw();
+  if (b.dataset.tab === "stats") { if (!statsDone) { statsDone = true; sRun(); } else sDraw(); }
+};
+$("themeBtn").onclick = () => { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem("theme", r.dataset.theme); } catch (e) {} redrawAll(); };
+function redrawAll() { aLegends(); aDraw(); hLegend(); if (!$("tab-healthy").hidden) hDraw(); sDraw(); }
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(redrawAll, 120); });
+try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+aReset(); aLegends(); hReset();
+})();
+</script>
+</body>
+</html>
