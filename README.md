@@ -8,7 +8,7 @@ Student projects from the elective course *Computational Physiology*, 2026. Ever
 | --- | --- | --- | --- |
 | [mRNA vaccine for melanoma](#personalised-mrna-vaccine-for-malignant-melanoma) | Science communication | [Cellular level](https://synthetic-physiology.github.io/ComputationalPhysiology2026/SciCom/MMOH_cellular.html) · [Molecular level](https://synthetic-physiology.github.io/ComputationalPhysiology2026/SciCom/MMOH_molecular.html) | Mariella Metzner & Olivia Hank |
 | [Aquagenic pruritus](#aquagenic-pruritus) | Pharmacology | [Interactive model](https://synthetic-physiology.github.io/ComputationalPhysiology2026/AquaPur/Model01.html) | Liliana Rudolf |
-| [Blood flow in a vascular network](#blood-flow-in-a-vascular-network) | Haemodynamics | [Interactive model](https://synthetic-physiology.github.io/ComputationalPhysiology2026/BloodFlow/blood_flow_demo.html) | Felix Schneider |
+| [Blood flow in a vascular network](#blood-flow-in-a-vascular-network) | Haemodynamics | [Interactive model](https://synthetic-physiology.github.io/ComputationalPhysiology2026/BloodFlow/blood_flow_demo.html) | Florian Winter |
 | [p22phox truncation and NADPH oxidase](#protein-folding-and-proteinprotein-interaction) | Structural biology | [Project folder](InterFold) | Magali Stecher |
 | [GLP-1 agonists, fat and muscle](#insulin-response-to-glp-1-receptor-agonists) | Metabolism | [Interactive simulator](https://synthetic-physiology.github.io/ComputationalPhysiology2026/MucleGLP1/MuscleGLP1.html) | Luke Gemünden |
 | [Piezo1 simulation](#piezo1-simulation) | Mechanotransduction | [Interactive simulator](https://synthetic-physiology.github.io/ComputationalPhysiology2026/PiezoSim/PIEZO1_Simulator.html) | Ben Seibel |
@@ -34,7 +34,7 @@ An interactive model of how beta-alanine modulates aquagenic pruritus, the itch 
 
 ## Blood flow in a vascular network
 
-*Felix Schneider*
+*Florian Winter*
 
 Block a vessel and watch the flow redistribute. The model shows how an occlusion changes blood flow in the neighbouring vessels of a network.
 
