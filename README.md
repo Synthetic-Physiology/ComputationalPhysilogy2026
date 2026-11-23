@@ -74,4 +74,4 @@ A spatial agent-based model of the bone marrow simulates healthy granulopoiesis 
 
 ---
 
-<sub>Several projects were developed with the help of AI tools. Notes on their use are in the individual project folders.</sub>
+<sub>All projects were developed with the help of AI tools.</sub>
