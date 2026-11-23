@@ -12,7 +12,7 @@ Student projects from the elective course *Computational Physiology*, 2026. Ever
 | [p22phox truncation and NADPH oxidase](#protein-folding-and-proteinprotein-interaction) | Structural biology | [Project folder](InterFold) | Magali Stecher |
 | [GLP-1 agonists, fat and muscle](#insulin-response-to-glp-1-receptor-agonists) | Metabolism | [Interactive simulator](https://synthetic-physiology.github.io/ComputationalPhysiology2026/MucleGLP1/MuscleGLP1.html) | Luke Gemünden |
 | [Piezo1 simulation](#piezo1-simulation) | Mechanotransduction | [Interactive simulator](https://synthetic-physiology.github.io/ComputationalPhysiology2026/PiezoSim/PIEZO1_Simulator.html) | Ben Seibel |
-| [Myelopoiesis and APL](#myelopoiesis-apl-and-atra-therapy) | Haematology | [Project folder](Hematopoiesis_APL) | Ben Glück |
+| [Myelopoiesis and APL](#myelopoiesis-apl-and-atra-therapy) | Haematology | [Interactive model](https://synthetic-physiology.github.io/ComputationalPhysiology2026/Hematopoiesis_APL/HematopoiesisAPL.html) | Ben Glück |
 
 ---
 
