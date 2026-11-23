@@ -68,9 +68,9 @@ A molecular model of the mechanosensitive ion channel Piezo1, with and without m
 
 *Ben Glück*
 
-A spatial agent-based model in Python simulates healthy granulopoiesis. It then adds acute promyelocytic leukaemia (APL), driven by the PML-RARα fusion protein, and its treatment with all-trans retinoic acid (ATRA), which forces the leukaemic cells to differentiate.
+A spatial agent-based model of the bone marrow simulates healthy granulopoiesis cell by cell. It then adds acute promyelocytic leukaemia (APL), driven by the PML-RARα fusion protein, and its treatment with all-trans retinoic acid (ATRA), which forces the leukaemic cells to differentiate. Users watch the marrow fill with blasts, start ATRA, and follow how the clonal diversity of healthy stem cells changes.
 
-▶ [Project folder](Hematopoiesis_APL)
+▶ [Open the simulation](https://synthetic-physiology.github.io/ComputationalPhysiology2026/Hematopoiesis_APL/HematopoiesisAPL.html)
 
 ---
 
