@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glukose-Insulin-Simulator</title>
+<meta name="description" content="Interaktives Glukose-Insulin-Modell: oraler Glukosetoleranztest unter GLP-1, Fettverlust, Magermasseverlust und Krafttraining.">
+<style>
+:root {
+  --bg: #f7f6f2; --panel: #ffffff; --ink: #14213d; --ink2: #52514e; --muted: #8a8984; --line: #e4e2dc; --grid: #ecebe6;
+  --accent: #2a6fdb; --good: #1f8a5a; --bad: #b8452a; --chip: #f0efea;
+  --c-gesund: #1f9e89; --c-ngt: #2a6fdb; --c-igt: #c26a17; --c-t2d: #8c5bd6; --c-base: #9a9994; --c-pin: #14213d;
+  --c-isr: #2a6fdb; --c-glc: #1f9e89; --c-ge: #5aa7c7; --c-fatp: #c26a17; --c-fatl: #e0a35c; --c-lean: #8c5bd6; --c-train: #3c9a4b;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c; --panel: #1d2027; --ink: #e9e8e4; --ink2: #b9b8b3; --muted: #8b8a86; --line: #30333b; --grid: #2a2d34;
+    --accent: #6c9ff0; --good: #4cc08a; --bad: #ec7a5c; --chip: #262a32;
+    --c-gesund: #3cc2ab; --c-ngt: #6c9ff0; --c-igt: #e59145; --c-t2d: #b18cf0; --c-base: #8b8a86; --c-pin: #e9e8e4;
+    --c-isr: #6c9ff0; --c-glc: #3cc2ab; --c-ge: #7cc3df; --c-fatp: #e59145; --c-fatl: #f0bf86; --c-lean: #b18cf0; --c-train: #6cc07a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171c; --panel: #1d2027; --ink: #e9e8e4; --ink2: #b9b8b3; --muted: #8b8a86; --line: #30333b; --grid: #2a2d34;
+  --accent: #6c9ff0; --good: #4cc08a; --bad: #ec7a5c; --chip: #262a32;
+  --c-gesund: #3cc2ab; --c-ngt: #6c9ff0; --c-igt: #e59145; --c-t2d: #b18cf0; --c-base: #8b8a86; --c-pin: #e9e8e4;
+  --c-isr: #6c9ff0; --c-glc: #3cc2ab; --c-ge: #7cc3df; --c-fatp: #e59145; --c-fatl: #f0bf86; --c-lean: #b18cf0; --c-train: #6cc07a;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+h1 { font-size: 1.55rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+.sub { color: var(--ink2); margin: 0; max-width: 760px; }
+h2 { font-size: 1.02rem; margin: 0 0 10px; }
+h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 0 8px; font-weight: 600; }
+.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.controls { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+@media (max-width: 900px) { .controls { position: static; max-height: none; } }
+.controls h3:first-child { margin-top: 0; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.seg button, .presets button, .btn {
+  font: inherit; font-size: 0.86rem; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip);
+  color: var(--ink); cursor: pointer; text-align: left; line-height: 1.25;
+}
+.seg button[aria-pressed="true"] { border-color: var(--gc); box-shadow: inset 0 0 0 1px var(--gc); background: var(--panel); }
+.seg button .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--gc); margin-right: 6px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.btn:hover, .seg button:hover, .presets button:hover { border-color: var(--muted); }
+.ctl { margin: 10px 0 12px; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; font-size: 0.88rem; }
+.ctl output { font-variant-numeric: tabular-nums; color: var(--ink2); white-space: nowrap; }
+.ctl .hint { font-size: 0.76rem; color: var(--muted); margin-top: 1px; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
+.toggle input { width: 17px; height: 17px; accent-color: var(--accent); }
+.drug.off { opacity: 0.45; pointer-events: none; }
+details summary { cursor: pointer; font-size: 0.86rem; color: var(--ink2); margin-top: 14px; }
+.body-comp { font-size: 0.82rem; color: var(--ink2); background: var(--chip); border-radius: 8px; padding: 8px 10px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.row-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+.main { display: grid; gap: 18px; min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 640px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.kpi .l { font-size: 0.78rem; color: var(--muted); }
+.kpi .v { font-size: 1.35rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.kpi .u { font-size: 0.78rem; color: var(--muted); font-weight: 400; margin-left: 3px; }
+.kpi .d { font-size: 0.82rem; font-variant-numeric: tabular-nums; color: var(--ink2); }
+.d.down { color: var(--good); } .d.up { color: var(--bad); }
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 1100px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8rem; color: var(--ink2); margin-top: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid currentColor; }
+.legend i.dash { border-top-style: dashed; } .legend i.dot { border-top-style: dotted; }
+.legend i.pt { width: 9px; height: 9px; border: 2px solid currentColor; border-radius: 50%; }
+svg text { fill: var(--ink2); font-size: 13px; font-family: inherit; }
+svg .ax { stroke: var(--line); } svg .gr { stroke: var(--grid); }
+svg .tipbg { fill: var(--panel); stroke: var(--line); }
+.shap-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) 64px; align-items: center; gap: 10px; font-size: 0.85rem; margin: 5px 0; }
+@media (max-width: 640px) { .shap-row { grid-template-columns: 120px minmax(0, 1fr) 56px; font-size: 0.78rem; } }
+.shap-track { position: relative; height: 18px; }
+.shap-track .zero { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink2); }
+.shap-track .bar { position: absolute; top: 2px; height: 14px; border-radius: 3px; }
+.shap-row .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink2); }
+.shap-row.total { border-top: 1px solid var(--line); padding-top: 6px; font-weight: 600; }
+.note { font-size: 0.8rem; color: var(--muted); margin: 8px 0 0; }
+table { width: 100%; border-collapse: collapse; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-weight: 600; font-size: 0.78rem; }
+.tablewrap { overflow-x: auto; }
+.about { font-size: 0.9rem; color: var(--ink2); }
+.about p, .about ul { margin: 6px 0 10px; }
+.about li { margin: 3px 0; }
+.about code { font-size: 0.85em; background: var(--chip); padding: 1px 4px; border-radius: 4px; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; }
+@media (max-width: 800px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.theme-btn { font-size: 0.82rem; }
+.busy { opacity: 0.55; transition: opacity 0.15s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Glukose-Insulin-Simulator</h1>
+    <p class="sub">Oraler Glukosetoleranztest (75 g) in einem physiologischen Modell. Wie verändern Fettverlust, Verlust von Magermasse, GLP-1-Wirkungen und Krafttraining den Glukose- und Insulinverlauf?</p>
+  </div>
+  <button class="btn theme-btn" id="themeBtn" type="button">Hell/Dunkel</button>
+</header>
+
+<div class="layout">
+<aside class="panel controls" aria-label="Einstellungen">
+  <h3>Gruppe</h3>
+  <div class="seg" id="groupSeg"></div>
+  <div class="body-comp" id="groupInfo"></div>
+
+  <h3>Szenario</h3>
+  <div class="presets" id="presets"></div>
+
+  <h3>Körperzusammensetzung</h3>
+  <div class="ctl"><label for="xFM">Fettmasse-Verlust <output id="o_xFM"></output></label><input type="range" id="xFM" min="0" max="50" step="0.5"><div class="hint">STEP 1 (DXA): 19,3 % der Fettmasse</div></div>
+  <div class="ctl"><label for="xLBM">Magermasse-Verlust <output id="o_xLBM"></output></label><input type="range" id="xLBM" min="0" max="20" step="0.5"><div class="hint">STEP 1 (DXA): 9,7 % der Magermasse</div></div>
+  <div class="ctl"><label for="gain">Magermasse-Zuwachs durch Training <output id="o_gain"></output></label><input type="range" id="gain" min="0" max="6" step="0.1"><div class="hint">Metaanalysen ohne Diät: +1,1 bis +1,5 kg</div></div>
+  <div class="ctl"><label for="qtrain">Insulinsensitivität im Muskel durch Training <output id="o_qtrain"></output></label><input type="range" id="qtrain" min="1" max="1.4" step="0.01"><div class="hint">Faktor je Muskelmasse, Andersen 2003: ×1,15</div></div>
+  <div class="body-comp" id="bodyComp"></div>
+
+  <h3>GLP-1-Direktwirkungen</h3>
+  <label class="toggle"><input type="checkbox" id="drugOn"> Semaglutid aktiv</label>
+  <div class="drug" id="drugBox">
+    <div class="ctl"><label for="isr">Insulinsekretion (Faktor) <output id="o_isr"></output></label><input type="range" id="isr" min="1" max="3" step="0.05"><div class="hint">Hjerpsted 2018: ×1,45 · bei T2D Kapitza 2017: ×2,1</div></div>
+    <div class="ctl"><label for="glc">Glukagon (Faktor) <output id="o_glc"></output></label><input type="range" id="glc" min="0.7" max="1" step="0.01"><div class="hint">Hjerpsted 2018: ×0,86</div></div>
+    <div class="ctl"><label for="ge">Magenentleerung (Faktor) <output id="o_ge"></output></label><input type="range" id="ge" min="0.4" max="1" step="0.01"><div class="hint">Nach 68 Wochen ×1,0. Frühe Therapiephase etwa ×0,5 bis ×0,7.</div></div>
+  </div>
+
+  <details>
+    <summary>Erweiterte Annahmen</summary>
+    <div class="ctl"><label for="alpha">Betazell-Anpassung an Sensitivität (α) <output id="o_alpha"></output></label><input type="range" id="alpha" min="0" max="1" step="0.05"><div class="hint">1 = volle hyperbolische Anpassung (Kahn 1993), 0 = keine. Gruppenstandard: gesund/NGT 1, IGT 0,5, T2D 0.</div></div>
+    <div class="ctl"><label for="lm">Anteil der Magermasse-Änderung, der Muskel ist <output id="o_lm"></output></label><input type="range" id="lm" min="0.5" max="1" step="0.05"></div>
+    <div class="ctl"><label for="sfat">Stärke des Fettverlust-Effekts auf die Insulinsensitivität <output id="o_sfat"></output></label><input type="range" id="sfat" min="0.5" max="1" step="0.05"><div class="hint">1 = wie in Magkos 2016 gemessen</div></div>
+    <div class="ctl"><label for="dose">Glukosedosis <output id="o_dose"></output></label><input type="range" id="dose" min="25" max="100" step="5"></div>
+  </details>
+
+  <div class="row-btns">
+    <button class="btn" id="pinBtn" type="button">Szenario als Vergleich fixieren</button>
+    <button class="btn" id="unpinBtn" type="button" hidden>Vergleich entfernen</button>
+    <button class="btn" id="shareBtn" type="button">Link kopieren</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="kpis" id="kpis"></div>
+
+  <div class="charts">
+    <section class="panel chart"><h2>Plasmaglukose</h2><div id="chG"></div><div class="legend" id="lgG"></div></section>
+    <section class="panel chart"><h2>Plasmainsulin</h2><div id="chI"></div><div class="legend" id="lgI"></div></section>
+  </div>
+
+  <div class="charts">
+    <section class="panel" id="shapPanel">
+      <h2>Was trägt wie viel bei?</h2>
+      <div id="shap"></div>
+      <p class="note">Shapley-Zerlegung der Änderung der mittleren Glukose 0–120 min gegenüber dem Ausgangszustand. Jeder Mechanismus wird in allen Kombinationen mit den anderen ein- und ausgeschaltet. Die Beiträge summieren sich exakt zur Gesamtänderung.</p>
+    </section>
+    <section class="panel chart"><h2>Glukoseflüsse</h2><div id="chF"></div><div class="legend" id="lgF"></div></section>
+  </div>
+
+  <section class="panel">
+    <h2>Kennwerte</h2>
+    <div class="tablewrap"><table id="tbl"></table></div>
+  </section>
+
+  <section class="panel about">
+    <h2>Über das Modell</h2>
+    <div class="cols">
+    <div>
+      <p>Fünf Zustände: Glukose im Magen (S) und im Darm (Q) in g, Plasmaglukose (G) in mmol/L, Plasmainsulin (I) in pmol/L und wirksames Insulin (X) in pmol/L. Das wirksame Insulin folgt dem Plasmainsulin verzögert und wirkt auf Glukoseaufnahme und Leber.</p>
+      <ul>
+        <li>Magenentleerung gesättigt (Michaelis-Menten), Darmresorption erster Ordnung. Die Magenparameter sind an Tracerdaten verankert (Ferrannini 1985).</li>
+        <li>Glukoseaufnahme: Gehirn (konstant), insulinunabhängig proportional zur Magermasse, insulinabhängig mit Sättigung. Der Muskel trägt 80 % der insulinabhängigen Aufnahme.</li>
+        <li>Leber: Produktion gehemmt durch wirksames Insulin und Glukose. 60 % der basalen Produktion hängen von Glukagon ab.</li>
+        <li>Betazelle: Sekretion steigt linear mit der Glukose, dazu eine Ratenkomponente und eine Potenzierung über 2 h (Mari-Modell).</li>
+        <li>Niere: Ausscheidung oberhalb von 10 mmol/L.</li>
+      </ul>
+    </div>
+    <div>
+      <p>Die gesunde Referenz ist innerhalb der Literaturstreuung kalibriert (Maximum a posteriori, 13 Parameter). Die Gruppen entstehen ausschließlich aus Literaturfaktoren und wurden nicht an Gruppendaten angepasst. Die Kreise in den Diagrammen zeigen Studiendaten zum Vergleich.</p>
+      <ul>
+        <li>Gruppen: Mittendorfer 2022 (Clamp, adipös NGT/IGT), Ferrannini 2003 (Betazelle), RISC-Referenzwerte.</li>
+        <li>Fettverlust → Insulinsensitivität: Magkos 2016 (Clamp bei 5, 11 und 16 % Gewichtsverlust).</li>
+        <li>Semaglutid: Wilding 2021 (STEP 1, DXA), Hjerpsted 2018, Kapitza 2017.</li>
+        <li>Krafttraining: Peterson 2011, Benito 2020, Andersen 2003.</li>
+      </ul>
+      <p>Dieser Simulator ist ein JavaScript-Port des Python-Modells (<code>model.py</code>, <code>groups.py</code>, <code>intervention.py</code>, <code>scenarios.py</code>). Er integriert mit Runge-Kutta 4. Ordnung (Schritt 0,05 min). Lehrmodell, keine medizinische Beratung.</p>
+    </div>
+    </div>
+  </section>
+</main>
+</div>
+</div>
+
+<script>
+// ===== Modellkern: JavaScript-Port von model.py, groups.py, intervention.py, scenarios.py =====
+const Model = (() => {
+  const MW = 180.16, mg = 1 / 18.016;
+  const LIT = {
+    BW: 70.0, FFM: 52.0, FM: 18.0, Gb: 4.95, Ib: 38.0, V_dl: 1.45, EGP_b: 2.0, f_ii: 0.75, U_brain_gd: 120.0,
+    SG: 0.025, SI_D: 9.93e-4, SI_P: 5.48e-4, X50_D: 330.0, X50_L: 71.0, sP: 0.5, p2: 0.02, musc_SI: 0.80, musc_ii: 0.30,
+    CL: 1.6, t_half_I: 4.3, beta: 119.0, RS: 800.0, PFR: 2.0, D: 75.0, k_abs: 0.057, GE_max: 0.5, G_thr: 10.0, GFR: 0.12,
+    w_glucagon: 0.6,
+  };
+  // Kalibrierte Werte (calibrate.py, Maximum a posteriori)
+  const CALVALS = {"SG":0.02041179,"SI_D":0.001012116,"X50_D":288.2789,"X50_L":85.40043,"sP":0.330442,"p2":0.02232699,"CL":1.583316,"beta":118.0796,"RS":898.2499,"PFR":2.114552,"GE_max":0.4274302,"V_dl":1.226695,"k_abs":0.09658154};
+  // Magenparameter fuer die kalibrierten GE_max und k_abs (gut_params, aus gut_cache.json interpoliert)
+  const GUT = {"K_ge":9.097233,"f":0.8190554};
+  const CAL = Object.assign({}, LIT, CALVALS);
+
+  const DEFAULT_PERSON = { BW: 70, FFM: 52, FM: 18, Gb: null, Ib: null, q_m: 1, q_r: 1, q_L: 1, cl_f: 1, M_rel: null,
+    beta_f: 1, RS_f: 1, PFR: null, drug_isr: 1, drug_glucagon: 1, drug_ge: 1 };
+
+  function build(p, person) {
+    const P = Object.assign({}, DEFAULT_PERSON, person || {});
+    const q = Object.assign({}, p); q.person = P;
+    const V0 = p.V_dl * p.BW / 10, ffm_rel = P.FFM / p.FFM;
+    q.V = V0 * ffm_rel;
+    const si = s => s / p.V_dl / 6.0 * V0;
+    q.U_brain = p.U_brain_gd / MW / 1440 * 1000;
+    const EGPb = p.EGP_b * p.BW / MW;
+    const k_ii0 = (p.f_ii * EGPb - q.U_brain) / p.Gb;
+    const m_rel = P.M_rel || ffm_rel;
+    q.k_ii = k_ii0 * ((1 - p.musc_ii) * ffm_rel + p.musc_ii * m_rel);
+    q.k_ii_m = k_ii0 * p.musc_ii * m_rel;
+    const clmax = si(p.SI_D) * (p.X50_D + p.Ib) ** 2 / p.X50_D;
+    q.clmax_m = clmax * p.musc_SI * m_rel * P.q_m;
+    q.clmax_r = clmax * (1 - p.musc_SI) * P.q_r;
+    q.qL = P.q_L;
+    q.k_GP = p.sP * p.SG * V0;
+    q.CL = p.CL * P.cl_f;
+    q.beta = p.beta * P.beta_f; q.RS = p.RS * P.RS_f;
+    q.PFR = P.PFR != null ? P.PFR : p.PFR;
+    q.n = Math.log(2) / p.t_half_I;
+    q.K_ge = GUT.K_ge; q.f = GUT.f;
+    q.GE = p.GE_max * P.drug_ge;
+    const Ga = P.Gb != null ? P.Gb : p.Gb, Ia = P.Ib != null ? P.Ib : p.Ib;
+    q.Ga = Ga; q.Ia = Ia;
+    const U = uptake(Ga, Ia, q);
+    q.E0 = (U + q.k_GP * Ga) / hep(Ia, q);
+    q.glucagon = 1 - p.w_glucagon * (1 - P.drug_glucagon);
+    q.ISR5 = q.CL * Ia - q.beta * (Ga - 5.0);
+    q.drug_isr = P.drug_isr;
+    return q;
+  }
+  const cl_D = (X, q, part) => { const x = Math.max(X, 0); const h = x / (q.X50_D + x); return h * (part === "m" ? q.clmax_m : q.clmax_m + q.clmax_r); };
+  const uptake = (G, X, q) => q.U_brain + q.k_ii * G + cl_D(X, q) * G + q.GFR * Math.max(G - q.G_thr, 0);
+  const hep = (X, q) => 1 / (1 + q.qL * Math.max(X, 0) / q.X50_L);
+  const egp = (G, X, q) => Math.max(q.E0 * q.glucagon * hep(X, q) - q.k_GP * G, 0);
+  const isr_basal = (G, q) => q.drug_isr * Math.max(q.ISR5 + q.beta * (G - 5.0), 0);
+
+  function fasting(q) {
+    const f = G => { const I = isr_basal(G, q) / q.CL; return egp(G, I, q) - uptake(G, I, q); };
+    let a = 2.5, b = 25.0, fa = f(a);
+    for (let i = 0; i < 80; i++) { const c = 0.5 * (a + b), fc = f(c); if ((fc > 0) === (fa > 0)) { a = c; fa = fc; } else b = c; }
+    const G = 0.5 * (a + b); return [G, isr_basal(G, q) / q.CL];
+  }
+  function rhs(t, y, q, out) {
+    const S = y[0], Qg = y[1], G = y[2], I = y[3], X = y[4];
+    const ge = q.GE * S / (q.K_ge + S);
+    const Ra = q.f * q.k_abs * Qg * 1000 / MW;
+    const dG = (egp(G, X, q) + Ra - uptake(G, X, q)) / q.V;
+    const P = 1 + (q.PFR - 1) * Math.min(t / 120, 1);
+    const ISR = P * isr_basal(G, q) + q.drug_isr * q.RS * Math.max(dG, 0);
+    out[0] = -ge; out[1] = ge - q.k_abs * Qg; out[2] = dG; out[3] = q.n * (ISR / q.CL - I); out[4] = q.p2 * (I - X);
+  }
+  // Klassisches Runge-Kutta 4. Ordnung, Schritt 0,05 min, Ausgabe jede Minute
+  function ogtt(q, t_end = 180, dose = null) {
+    const [G0, I0] = fasting(q);
+    let y = [dose == null ? q.D : dose, 0, G0, I0, I0];
+    const h = 0.05, sub = 20, n = 5;
+    const k1 = new Array(n), k2 = new Array(n), k3 = new Array(n), k4 = new Array(n), tmp = new Array(n);
+    const Y = [[], [], [], [], []], T = [];
+    const push = t => { T.push(t); for (let i = 0; i < n; i++) Y[i].push(y[i]); };
+    push(0);
+    let t = 0;
+    for (let m = 0; m < t_end; m++) {
+      for (let s = 0; s < sub; s++) {
+        rhs(t, y, q, k1);
+        for (let i = 0; i < n; i++) tmp[i] = y[i] + 0.5 * h * k1[i]; rhs(t + 0.5 * h, tmp, q, k2);
+        for (let i = 0; i < n; i++) tmp[i] = y[i] + 0.5 * h * k2[i]; rhs(t + 0.5 * h, tmp, q, k3);
+        for (let i = 0; i < n; i++) tmp[i] = y[i] + h * k3[i]; rhs(t + h, tmp, q, k4);
+        for (let i = 0; i < n; i++) y[i] += h / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]);
+        t = (m * sub + s + 1) * h;
+      }
+      push(m + 1);
+    }
+    return { t: T, y: Y };
+  }
+  function fluxes(r, q) {   // mg/kg(Referenz-KG)/min
+    const c = MW / q.BW, [S, Qg, G, I, X] = r.y;
+    const Ra = Qg.map(v => q.f * q.k_abs * v * 1000 / MW * c);
+    const E = G.map((g, i) => egp(g, X[i], q) * c);
+    return { Ra, E };
+  }
+
+  // ---------- Gruppen (groups.py)
+  const OBESE = { BW: 104.0, FM: 50.0, FFM: 54.0 };
+  function si_rel(person) {
+    const P = Object.assign({}, DEFAULT_PERSON, person), ffm = P.FFM / CAL.FFM;
+    const D = CAL.musc_SI * ffm * P.q_m + (1 - CAL.musc_SI) * P.q_r;
+    const wD = CAL.SI_D / (CAL.SI_D + CAL.SI_P);
+    return wD * D + (1 - wD) * P.q_L;
+  }
+  const I_CLAMP_OB = 119 * 6.0;
+  function q_from_rdI(ratio, cl_f) {
+    const X50 = CAL.X50_D, I_lean = I_CLAMP_OB * 0.77, I_g = I_CLAMP_OB * 0.77 / cl_f, h = I => I / (X50 + I);
+    return (h(I_lean) / I_lean) / ratio * I_g / h(I_g);
+  }
+  const Q_NGT = q_from_rdI(713 / 384, 0.77), Q_IGT = q_from_rdI(713 / 216, 0.68);
+  const ob = Object.assign({}, OBESE, { q_m: Q_NGT, q_r: Q_NGT, q_L: 0.46, cl_f: 0.77, Gb: 88 * mg, Ib: 77.0, PFR: 1.6 });
+  ob.beta_f = 1 / si_rel(ob);
+  const GROUPS = {
+    "gesund": {},
+    "adipös NGT": ob,
+    "adipös IGT": Object.assign({}, OBESE, { q_m: Q_IGT, q_r: Q_IGT, q_L: 0.26, cl_f: 0.68, Gb: 92 * mg, Ib: 130.0, PFR: 1.6, beta_f: ob.beta_f * 53 / 102 }),
+    "T2D": Object.assign({}, OBESE, { q_m: Q_IGT, q_r: Q_IGT, q_L: 0.26, cl_f: 0.68, Gb: 7.08, Ib: 73.0, PFR: 1.1, RS_f: 0.5, beta_f: ob.beta_f * 19 / 50 }),
+  };
+  function summary(r, q) {
+    const t = r.t, G = r.y[2], I = r.y[3], N = G.length;
+    const dG = G.map((g, i) => i === 0 ? G[1] - G[0] : i === N - 1 ? G[N - 1] - G[N - 2] : (G[i + 1] - G[i - 1]) / 2);
+    const ISR = G.map((g, i) => (1 + (q.PFR - 1) * Math.min(t[i] / 120, 1)) * isr_basal(g, q) + q.drug_isr * q.RS * Math.max(dG[i], 0));
+    let isr = 0; for (let i = 0; i < 120; i++) isr += 0.5 * (ISR[i] + ISR[i + 1]);
+    const mean = (a, k) => { let s = 0; for (let i = 0; i < k; i++) s += a[i]; return s / k; };
+    return { G0: G[0], G30: G[30], G60: G[60], G90: G[90], G120: G[120], Gmean120: mean(G, 121), Gmean180: mean(G, N),
+      I0: I[0], I30: I[30], I60: I[60], I120: I[120], Imean120: mean(I, 121), Imean180: mean(I, N),
+      ISR_total: isr / 1000, HOMA: G[0] * I[0] / 6 / 22.5 };
+  }
+
+  // ---------- Interventionen (intervention.py)
+  const MK_xFM = [0, 4.9, 9.2, 13.4].map(v => v / 50.3), MK_xFFM = [0, 1.5, 2.8, 4.0].map(v => v / 53.0);
+  const MK_stim = [168, 207, 326, 311].map(v => v / 168), MK_egp = [29, 23, 24, 20].map(v => v / 29);
+  const Q_FAT = MK_stim.map((v, i) => v / (1 - MK_xFFM[i])), QL_FAT = MK_egp.map(v => 1 / v);
+  const interp = (x, xs, ys) => { if (x <= xs[0]) return ys[0]; for (let i = 1; i < xs.length; i++) if (x <= xs[i]) return ys[i - 1] + (ys[i] - ys[i - 1]) * (x - xs[i - 1]) / (xs[i] - xs[i - 1]); return ys[ys.length - 1]; };
+  const q_fat = (x, s = 1) => 1 + s * (interp(x, MK_xFM, Q_FAT) - 1);
+  const qL_fat = (x, s = 1) => 1 + s * (interp(x, MK_xFM, QL_FAT) - 1);
+  const ALPHA = { "gesund": 1.0, "adipös NGT": 1.0, "adipös IGT": 0.5, "T2D": 0.0 };
+  const GLP1 = { drug_isr: 1.45, drug_glucagon: 0.86, drug_ge: 1.0 };
+  const GLP1_T2D = { drug_isr: 2.10, drug_glucagon: 0.86, drug_ge: 1.0 };
+  const STEP1 = { xFM: 0.193, xLBM: 0.097 };
+  const RT = { gain_FFM: 1.0, q_train: 1.15 };
+  const ALL_CH = ["isr", "glucagon", "ge", "fat_periph", "fat_liver", "lean", "train"];
+
+  const q0Cache = {};
+  function make(group, o = {}) {
+    const xFM = o.xFM || 0, xLBM = o.xLBM || 0, gain_FFM = o.gain_FFM || 0, q_train = o.q_train ?? 1, drug = o.drug || null;
+    const lean_to_muscle = o.lean_to_muscle ?? 1, s_fat = o.s_fat ?? 1;
+    const base = Object.assign({}, DEFAULT_PERSON, GROUPS[group]);
+    const q0 = q0Cache[group] || (q0Cache[group] = build(CAL, base));
+    const ch = new Set(o.channels || ALL_CH);
+    const a = o.alpha == null ? ALPHA[group] : o.alpha;
+    const P = Object.assign({}, base), FFM0 = base.FFM, FM0 = base.FM;
+    const dFFM = -(xLBM * FFM0) * (ch.has("lean") ? 1 : 0) + gain_FFM * (ch.has("train") ? 1 : 0);
+    P.FFM = FFM0 + dFFM;
+    const M0 = base.M_rel || FFM0 / CAL.FFM;
+    P.M_rel = M0 * (1 + lean_to_muscle * dFFM / FFM0);
+    P.FM = FM0 * (1 - xFM); P.BW = P.FM + FFM0 + dFFM;
+    if (ch.has("fat_periph")) { P.q_m = base.q_m * q_fat(xFM, s_fat); P.q_r = base.q_r * q_fat(xFM, s_fat); }
+    if (ch.has("train")) P.q_m = P.q_m * q_train;
+    if (ch.has("fat_liver")) P.q_L = base.q_L * qL_fat(xFM, s_fat);
+    if (drug) for (const k of ["isr", "glucagon", "ge"]) if (ch.has(k)) P["drug_" + k] = drug["drug_" + k];
+    const q = build(CAL, P);
+    const adapt = (si_rel(P) / si_rel(base)) ** (-a);
+    q.E0 = q0.E0;
+    q.beta = q0.beta * adapt; q.ISR5 = q0.ISR5 * adapt; q.RS = q0.RS * adapt;
+    q.glucagon = 1 - CAL.w_glucagon * (1 - P.drug_glucagon);
+    q.personOut = P;
+    return q;
+  }
+  function metrics(q) { const r = ogtt(q, 180); return { s: summary(r, q), r }; }
+
+  // Shapley-Zerlegung ueber die aktiven Kanaele (scenarios.py)
+  function shapley(group, o, chans, metric = "Gmean120") {
+    const val = new Map(), n = chans.length;
+    const key = S => S.slice().sort().join("|");
+    for (let mask = 0; mask < (1 << n); mask++) {
+      const S = chans.filter((_, i) => mask & (1 << i));
+      val.set(key(S), metrics(make(group, Object.assign({}, o, { channels: S }))).s[metric]);
+    }
+    const fact = k => { let r = 1; for (let i = 2; i <= k; i++) r *= i; return r; };
+    const phi = {};
+    for (const c of chans) {
+      const others = chans.filter(x => x !== c); let tot = 0;
+      for (let mask = 0; mask < (1 << others.length); mask++) {
+        const S = others.filter((_, i) => mask & (1 << i)), r = S.length;
+        tot += fact(r) * fact(n - r - 1) / fact(n) * (val.get(key(S.concat([c]))) - val.get(key(S)));
+      }
+      phi[c] = tot;
+    }
+    return { phi, base: val.get(""), total: val.get(key(chans)) };
+  }
+  const x_fat_only = g => { const P = GROUPS[g]; return (STEP1.xFM * P.FM + STEP1.xLBM * P.FFM) / P.FM; };
+
+  return { LIT, CAL, GROUPS, ALPHA, GLP1, GLP1_T2D, STEP1, RT, Q_NGT, Q_IGT, build, ogtt, fasting, fluxes, summary, make, metrics, shapley, x_fat_only, mg };
+})();
+
+</script>
+<script>
+(() => {
+const M = Model;
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const nf = (v, d) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
+const sg = (v, d) => (v > 0.5 * 10 ** -d ? "+" : v < -0.5 * 10 ** -d ? "−" : "±") + nf(Math.abs(v), d);
+
+const GROUPS = [
+  { key: "gesund", label: "Gesund", color: "--c-gesund", info: "70 kg · Fett 18 kg · Magermasse 52 kg · Referenzperson (RISC)" },
+  { key: "adipös NGT", label: "Adipös, normale Glukosetoleranz", color: "--c-ngt", info: "104 kg · Fett 50 kg · Magermasse 54 kg · Insulinsensitivität Muskel ×0,64, Leber ×0,46" },
+  { key: "adipös IGT", label: "Adipös, Prädiabetes (IGT)", color: "--c-igt", info: "104 kg · Fett 50 kg · Magermasse 54 kg · Muskel ×0,40, Leber ×0,26, Betazelle −48 % ggü. NGT" },
+  { key: "T2D", label: "Typ-2-Diabetes", color: "--c-t2d", info: "104 kg · Fett 50 kg · Magermasse 54 kg · Muskel ×0,40, Leber ×0,26, Betazelle −62 % ggü. NGT" },
+];
+const DATA = {   // Studiendaten Ausgangszustand (figures.py)
+  "gesund": { G: [[0, 4.95], [30, 7.72], [60, 7.26], [90, 6.28], [120, 5.60]], I: [[0, 38], [30, 296], [60, 328], [90, 262], [120, 230]], src: "Medianreferenz aus 4 Kohorten" },
+  "adipös NGT": { G: [[0, 4.88], [120, 5.88]], I: [], src: "Mittendorfer 2022" },
+  "adipös IGT": { G: [[0, 5.11], [120, 9.27]], I: [], src: "Mittendorfer 2022" },
+  "T2D": { G: [[0, 7.08], [120, 11.85]], I: [], src: "Ferrannini 2003" },
+};
+const PRESETS = [
+  { key: "base", label: "Ausgang" },
+  { key: "step1", label: "GLP-1 (STEP 1)" },
+  { key: "keep", label: "GLP-1 + Muskelerhalt" },
+  { key: "fat", label: "GLP-1, nur Fettverlust (theoretisch)" },
+  { key: "rt", label: "Krafttraining ohne GLP-1" },
+  { key: "rt10", label: "Muskel +10 % ohne GLP-1" },
+];
+const CH = {
+  isr: { label: "GLP-1: Betazelle", color: "--c-isr" }, glucagon: { label: "GLP-1: Glukagon", color: "--c-glc" },
+  ge: { label: "GLP-1: Magenentleerung", color: "--c-ge" }, fat_periph: { label: "Fettverlust → Muskel/Peripherie", color: "--c-fatp" },
+  fat_liver: { label: "Fettverlust → Leber", color: "--c-fatl" }, lean: { label: "Magermasse-Verlust", color: "--c-lean" },
+  train: { label: "Krafttraining", color: "--c-train" },
+};
+const SL = {   // Slider: Formatierung
+  xFM: v => nf(v, 1) + " %", xLBM: v => nf(v, 1) + " %", gain: v => "+" + nf(v, 1) + " kg", qtrain: v => "×" + nf(v, 2),
+  isr: v => "×" + nf(v, 2), glc: v => "×" + nf(v, 2), ge: v => "×" + nf(v, 2), alpha: v => nf(v, 2), lm: v => nf(v, 2), sfat: v => nf(v, 2), dose: v => nf(v, 0) + " g",
+};
+const ffmOf = g => M.GROUPS[g].FFM || 52, fmOf = g => M.GROUPS[g].FM || 18;
+const drugDefault = g => g === "T2D" ? M.GLP1_T2D : M.GLP1;
+
+let S = { group: "adipös IGT", preset: "step1", xFM: 0, xLBM: 0, gain: 0, qtrain: 1, drugOn: false, isr: 1.45, glc: 0.86, ge: 1, alpha: 0.5, lm: 1, sfat: 1, dose: 75 };
+let pinned = null;
+
+function applyPreset(p) {
+  const g = S.group, d = drugDefault(g);
+  Object.assign(S, { xFM: 0, xLBM: 0, gain: 0, qtrain: 1, drugOn: false, isr: d.drug_isr, glc: d.drug_glucagon, ge: 1 });
+  if (p === "step1") Object.assign(S, { xFM: 19.3, xLBM: 9.7, drugOn: true });
+  if (p === "keep") Object.assign(S, { xFM: 19.3, xLBM: 4.85, qtrain: 1.15, drugOn: true });
+  if (p === "fat") Object.assign(S, { xFM: Math.round(M.x_fat_only(g) * 1000) / 10, drugOn: true });
+  if (p === "rt") Object.assign(S, { gain: 1.0, qtrain: 1.15 });
+  if (p === "rt10") Object.assign(S, { gain: Math.round(0.1 * ffmOf(g) * 10) / 10, qtrain: 1.15 });
+  S.preset = p;
+}
+
+function opts(withChannels) {
+  const o = { xFM: S.xFM / 100, xLBM: S.xLBM / 100, gain_FFM: S.gain, q_train: S.qtrain, lean_to_muscle: S.lm, s_fat: S.sfat, alpha: S.alpha };
+  if (S.drugOn) o.drug = { drug_isr: S.isr, drug_glucagon: S.glc, drug_ge: S.ge };
+  return o;
+}
+function sim(o) { const q = M.make(S.group, o); q.D = S.dose; const r = M.ogtt(q, 180); return { q, r, s: M.summary(r, q), f: M.fluxes(r, q) }; }
+function activeChannels() {
+  const c = [];
+  if (S.drugOn) { if (S.isr !== 1) c.push("isr"); if (S.glc !== 1) c.push("glucagon"); if (S.ge !== 1) c.push("ge"); }
+  if (S.xFM > 0) c.push("fat_periph", "fat_liver");
+  if (S.xLBM > 0) c.push("lean");
+  if (S.gain > 0 || S.qtrain !== 1) c.push("train");
+  return c;
+}
+
+// ---------- UI-Aufbau
+function buildUI() {
+  $("groupSeg").innerHTML = GROUPS.map(g => `<button type="button" data-g="${g.key}" style="--gc:var(${g.color})"><span class="dot"></span>${g.label}</button>`).join("");
+  $("groupSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.group = b.dataset.g; S.alpha = M.ALPHA[S.group]; if (S.preset) applyPreset(S.preset); update(true); };
+  $("presets").innerHTML = PRESETS.map(p => `<button type="button" data-p="${p.key}">${p.label}</button>`).join("");
+  $("presets").onclick = e => { const b = e.target.closest("button"); if (!b) return; applyPreset(b.dataset.p); update(true); };
+  for (const k of Object.keys(SL)) $(k).addEventListener("input", e => { S[k] = parseFloat(e.target.value); if (!["alpha", "lm", "sfat", "dose"].includes(k)) S.preset = null; update(false); });
+  $("drugOn").onchange = e => { S.drugOn = e.target.checked; S.preset = null; update(false); };
+  $("pinBtn").onclick = () => { const cur = sim(opts()); pinned = { label: pinLabel(), r: cur.r, s: cur.s, group: S.group }; update(false); };
+  $("unpinBtn").onclick = () => { pinned = null; update(false); };
+  $("shareBtn").onclick = () => { const url = location.href.split("#")[0] + "#" + encodeState(); try { history.replaceState(null, "", url); } catch (e) {} copy(url); };
+  $("themeBtn").onclick = () => { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; lastShapKey = ""; try { localStorage.setItem("theme", r.dataset.theme); } catch (e) {} update(false); };
+}
+function copy(text) {
+  const done = () => { $("shareBtn").textContent = "Link kopiert"; setTimeout(() => $("shareBtn").textContent = "Link kopieren", 1600); };
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done); else done();
+}
+function pinLabel() { const p = PRESETS.find(p => p.key === S.preset); return "Vergleich: " + (p ? p.label : "eigenes Szenario") + " · " + GROUPS.find(g => g.key === S.group).label; }
+const KEYS = ["xFM", "xLBM", "gain", "qtrain", "isr", "glc", "ge", "alpha", "lm", "sfat", "dose"];
+function encodeState() { return "g=" + GROUPS.findIndex(g => g.key === S.group) + "&d=" + (S.drugOn ? 1 : 0) + "&p=" + (S.preset || "") + "&" + KEYS.map(k => k + "=" + S[k]).join("&"); }
+function decodeState(h) {
+  const p = new URLSearchParams(h.replace(/^#/, "")); if (!p.has("g")) return false;
+  const gi = +p.get("g"); if (GROUPS[gi]) S.group = GROUPS[gi].key;
+  S.alpha = M.ALPHA[S.group];
+  for (const k of KEYS) if (p.has(k) && isFinite(+p.get(k))) S[k] = +p.get(k);
+  S.drugOn = p.get("d") === "1"; S.preset = PRESETS.some(x => x.key === p.get("p")) ? p.get("p") : null;
+  return true;
+}
+
+// ---------- SVG-Liniendiagramm mit Fadenkreuz
+function niceStep(range, n) { const r = range / n, p = 10 ** Math.floor(Math.log10(r)), m = r / p; return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p; }
+function lineChart(host, cfg) {
+  const W = 540, H = 300, L = 52, R = 12, T = 10, B = 34, pw = W - L - R, ph = H - T - B;
+  let ymax = cfg.ymin; for (const s of cfg.series) for (const v of s.y) if (v > ymax) ymax = v;
+  for (const p of cfg.points || []) ymax = Math.max(ymax, p[1]);
+  const step = niceStep(ymax - cfg.ymin, 5); ymax = Math.ceil(ymax / step) * step; if (ymax - cfg.ymin < step) ymax = cfg.ymin + step;
+  const X = t => L + t / 180 * pw, Y = v => T + ph - (v - cfg.ymin) / (ymax - cfg.ymin) * ph;
+  let g = "";
+  for (let v = cfg.ymin; v <= ymax + 1e-9; v += step) g += `<line class="gr" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${nf(v, step < 1 ? 1 : 0)}</text>`;
+  for (let t = 0; t <= 180; t += 30) g += `<text x="${X(t)}" y="${H - B + 18}" text-anchor="middle">${t}</text>`;
+  g += `<line class="ax" x1="${L}" x2="${W - R}" y1="${T + ph}" y2="${T + ph}"/><text x="${L + pw / 2}" y="${H - 2}" text-anchor="middle">Zeit nach Glukosegabe (min)</text>`;
+  g += `<text transform="translate(13 ${T + ph / 2}) rotate(-90)" text-anchor="middle">${cfg.ylabel}</text>`;
+  for (const h of cfg.hlines || []) if (h.y <= ymax) g += `<line x1="${L}" x2="${W - R}" y1="${Y(h.y)}" y2="${Y(h.y)}" stroke="${css("--ink2")}" stroke-dasharray="2 3" stroke-width="1"/><text x="${W - R}" y="${Y(h.y) - 5}" text-anchor="end">${h.label}</text>`;
+  for (const s of cfg.series) {
+    const d = s.y.map((v, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1)).join("");
+    g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.w || 2.2}" ${s.dash ? `stroke-dasharray="${s.dash}"` : ""} stroke-linejoin="round"/>`;
+  }
+  for (const p of cfg.points || []) g += `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4.5" fill="${css("--panel")}" stroke="${cfg.pointColor}" stroke-width="2"/>`;
+  g += `<g class="tip" visibility="hidden"><line class="tl" y1="${T}" y2="${T + ph}" stroke="${css("--muted")}" stroke-width="1"/><g class="dots"></g><rect class="tipbg" rx="5"/><text class="tt"></text></g>`;
+  g += `<rect class="hit" x="${L}" y="${T}" width="${pw}" height="${ph}" fill="transparent"/>`;
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${cfg.aria}">${g}</svg>`;
+  const svg = host.querySelector("svg"), tip = svg.querySelector(".tip"), tt = svg.querySelector(".tt"), bg = svg.querySelector(".tipbg"), dots = svg.querySelector(".dots");
+  const move = ev => {
+    const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const t = Math.max(0, Math.min(180, Math.round((p.x - L) / pw * 180))); const x = X(t);
+    tip.setAttribute("visibility", "visible"); tip.querySelector(".tl").setAttribute("x1", x); tip.querySelector(".tl").setAttribute("x2", x);
+    dots.innerHTML = cfg.series.map(s => `<circle cx="${x}" cy="${Y(s.y[t])}" r="3.5" fill="${s.color}"/>`).join("");
+    const lines = [`${t} min`].concat(cfg.series.map(s => `${s.short}: ${nf(s.y[t], cfg.dec)}`));
+    tt.innerHTML = lines.map((l, i) => `<tspan x="0" dy="${i ? 15 : 0}" ${i ? `style="fill:${cfg.series[i - 1].color}"` : `style="font-weight:600"`}>${l}</tspan>`).join("");
+    const bb = tt.getBBox(), w = bb.width + 14, h = bb.height + 10; let tx = x + 10; if (tx + w > W - R) tx = x - 10 - w;
+    bg.setAttribute("x", tx); bg.setAttribute("y", T + 4); bg.setAttribute("width", w); bg.setAttribute("height", h);
+    tt.setAttribute("transform", `translate(${tx + 7} ${T + 4 + 5 - bb.y})`); tt.querySelectorAll("tspan").forEach(s => s.setAttribute("x", 0));
+  };
+  const hit = svg.querySelector(".hit");
+  hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move);
+  hit.addEventListener("pointerleave", () => tip.setAttribute("visibility", "hidden"));
+}
+function legend(host, items) {
+  host.innerHTML = items.map(i => `<span style="color:${i.color}"><i class="${i.cls || ""}"></i><span style="color:var(--ink2)">${i.label}</span></span>`).join("");
+}
+
+// ---------- Darstellung
+let shapTimer = null, lastShapKey = "";
+function update(full) {
+  // Steuerelemente synchronisieren
+  for (const b of $("groupSeg").children) b.setAttribute("aria-pressed", b.dataset.g === S.group);
+  for (const b of $("presets").children) b.setAttribute("aria-pressed", b.dataset.p === S.preset);
+  for (const k of Object.keys(SL)) { $(k).value = S[k]; $("o_" + k).textContent = SL[k](S[k]); }
+  $("o_xFM").textContent = SL.xFM(S.xFM) + " (" + nf(fmOf(S.group) * S.xFM / 100, 1) + " kg)";
+  $("o_xLBM").textContent = SL.xLBM(S.xLBM) + " (" + nf(ffmOf(S.group) * S.xLBM / 100, 1) + " kg)";
+  $("drugOn").checked = S.drugOn; $("drugBox").classList.toggle("off", !S.drugOn);
+  $("unpinBtn").hidden = !pinned;
+  const G = GROUPS.find(g => g.key === S.group), gc = css(G.color);
+  $("groupInfo").textContent = G.info;
+  const FM0 = fmOf(S.group), FFM0 = ffmOf(S.group), FM1 = FM0 * (1 - S.xFM / 100), FFM1 = FFM0 * (1 - S.xLBM / 100) + S.gain;
+  const BW0 = FM0 + FFM0, BW1 = FM1 + FFM1, lossKg = BW0 - BW1;
+  $("bodyComp").innerHTML = `Gewicht ${nf(BW0, 1)} → ${nf(BW1, 1)} kg (${sg(-100 * lossKg / BW0, 1)} %)<br>Fett ${nf(FM0, 1)} → ${nf(FM1, 1)} kg · Magermasse ${nf(FFM0, 1)} → ${nf(FFM1, 1)} kg` +
+    (lossKg > 0.05 ? `<br>Anteil Magermasse am Gewichtsverlust: ${nf(100 * (FFM0 - FFM1) / lossKg, 0)} %` : "");
+
+  // Simulation
+  const base = sim({ alpha: S.alpha }), cur = sim(opts());
+  const b = base.s, s = cur.s;
+
+  // Kennzahlen
+  const kp = [["Nüchternglukose", "G0", "mmol/L", 2], ["2-h-Glukose", "G120", "mmol/L", 2], ["Glukose Mittel 0–120 min", "Gmean120", "mmol/L", 2], ["Insulin Mittel 0–120 min", "Imean120", "pmol/L", 0]];
+  $("kpis").innerHTML = kp.map(([l, k, u, d]) => {
+    const dv = s[k] - b[k], rel = 100 * (s[k] / b[k] - 1), cls = Math.abs(rel) < 0.05 ? "" : dv < 0 ? "down" : "up";
+    return `<div class="kpi"><div class="l">${l}</div><div class="v">${nf(s[k], d)}<span class="u">${u}</span></div><div class="d ${cls}">${sg(dv, d)} (${sg(rel, 0)} %) ggü. Ausgang</div></div>`;
+  }).join("");
+
+  // Diagramme
+  const base_c = css("--c-base"), pin_c = css("--c-pin"), dat = DATA[S.group];
+  const serG = [{ y: base.r.y[2], color: base_c, short: "Ausgang", w: 2 }, { y: cur.r.y[2], color: gc, short: "Szenario", w: 2.6 }];
+  const serI = [{ y: base.r.y[3], color: base_c, short: "Ausgang", w: 2 }, { y: cur.r.y[3], color: gc, short: "Szenario", w: 2.6 }];
+  if (pinned) { serG.push({ y: pinned.r.y[2], color: pin_c, short: "Vergleich", dash: "2 3", w: 2 }); serI.push({ y: pinned.r.y[3], color: pin_c, short: "Vergleich", dash: "2 3", w: 2 }); }
+  lineChart($("chG"), { series: serG, ymin: 3, ylabel: "Glukose (mmol/L)", dec: 2, points: dat.G, pointColor: base_c, hlines: [{ y: 7.8, label: "IGT-Grenze 2 h (7,8)" }], aria: "Glukoseverlauf" });
+  lineChart($("chI"), { series: serI, ymin: 0, ylabel: "Insulin (pmol/L)", dec: 0, points: dat.I, pointColor: base_c, aria: "Insulinverlauf" });
+  const lg = [{ color: base_c, label: "Ausgang" }, { color: gc, label: "Szenario" }];
+  if (pinned) lg.push({ color: pin_c, label: pinned.label, cls: "dot" });
+  legend($("lgG"), lg.concat([{ color: base_c, label: "Studiendaten Ausgang (" + dat.src + ")", cls: "pt" }]));
+  legend($("lgI"), dat.I.length ? lg.concat([{ color: base_c, label: "Studiendaten Ausgang", cls: "pt" }]) : lg);
+  const fc1 = css("--c-fatp"), fc2 = css("--c-lean");
+  lineChart($("chF"), { series: [
+      { y: base.f.Ra, color: fc1, short: "Darm, Ausgang", dash: "5 4", w: 1.8 }, { y: cur.f.Ra, color: fc1, short: "Darm, Szenario" },
+      { y: base.f.E, color: fc2, short: "Leber, Ausgang", dash: "5 4", w: 1.8 }, { y: cur.f.E, color: fc2, short: "Leber, Szenario" }],
+    ymin: 0, ylabel: "mg/kg/min", dec: 2, aria: "Glukoseflüsse" });
+  legend($("lgF"), [{ color: fc1, label: "Aufnahme aus dem Darm" }, { color: fc2, label: "Leberproduktion" }, { color: css("--ink2"), label: "Ausgang", cls: "dash" }, { color: css("--ink2"), label: "Szenario" }]);
+
+  // Tabelle
+  const rows = [["Nüchternglukose", "G0", "mmol/L", 2], ["Glukose 30 min", "G30", "mmol/L", 2], ["Glukose 60 min", "G60", "mmol/L", 2], ["Glukose 120 min", "G120", "mmol/L", 2],
+    ["Glukose Mittel 0–120 min", "Gmean120", "mmol/L", 2], ["Nüchterninsulin", "I0", "pmol/L", 0], ["Insulin 30 min", "I30", "pmol/L", 0], ["Insulin 60 min", "I60", "pmol/L", 0],
+    ["Insulin 120 min", "I120", "pmol/L", 0], ["Insulin Mittel 0–120 min", "Imean120", "pmol/L", 0], ["Insulinsekretion 0–120 min", "ISR_total", "nmol/m²", 1], ["HOMA-IR", "HOMA", "", 2]];
+  $("tbl").innerHTML = `<thead><tr><th>Kennwert</th><th>Einheit</th><th>Ausgang</th><th>Szenario</th><th>Änderung</th>${pinned ? "<th>Vergleich</th>" : ""}</tr></thead><tbody>` +
+    rows.map(([l, k, u, d]) => `<tr><td>${l}</td><td>${u}</td><td>${nf(b[k], d)}</td><td>${nf(s[k], d)}</td><td>${sg(s[k] - b[k], d)} (${sg(100 * (s[k] / b[k] - 1), 0)} %)</td>${pinned ? `<td>${nf(pinned.s[k], d)}</td>` : ""}</tr>`).join("") + "</tbody>";
+
+  // Shapley (verzoegert, da bis zu 128 Simulationen)
+  const chans = activeChannels(), key = JSON.stringify([S, chans]);
+  if (key !== lastShapKey) {
+    lastShapKey = key; $("shap").classList.add("busy"); clearTimeout(shapTimer);
+    shapTimer = setTimeout(() => renderShap(chans), full ? 0 : 140);
+  }
+}
+function renderShap(chans) {
+  const host = $("shap"); host.classList.remove("busy");
+  if (!chans.length) { host.innerHTML = `<p class="note">Kein Mechanismus aktiv. Wählen Sie ein Szenario oder verschieben Sie einen Regler.</p>`; return; }
+  const sh = M.shapley(S.group, opts(), chans), vals = chans.map(c => sh.phi[c]), tot = sh.total - sh.base;
+  let lo = Math.min(0, tot, ...vals), hi = Math.max(0, tot, ...vals); const pad = (hi - lo) * 0.04 || 0.1; lo -= pad; hi += pad;
+  const pos = v => 100 * (v - lo) / (hi - lo), z = pos(0);
+  const bar = (v, color) => `<div class="shap-track"><div class="zero" style="left:${z}%"></div><div class="bar" style="left:${Math.min(z, pos(v))}%;width:${Math.abs(pos(v) - z)}%;background:${color}"></div></div>`;
+  host.innerHTML = chans.map(c => `<div class="shap-row"><span>${CH[c].label}</span>${bar(sh.phi[c], css(CH[c].color))}<span class="num">${sg(sh.phi[c], 2)}</span></div>`).join("") +
+    `<div class="shap-row total"><span>Gesamt (mmol/L)</span>${bar(tot, css("--ink2"))}<span class="num">${sg(tot, 2)}</span></div>` +
+    `<p class="note">Glukose-Mittel 0–120 min: ${nf(sh.base, 2)} → ${nf(sh.total, 2)} mmol/L. Negativ = senkt die Glukose.</p>`;
+}
+
+// ---------- Start
+try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+buildUI();
+if (!decodeState(location.hash)) { S.alpha = M.ALPHA[S.group]; applyPreset("step1"); }
+update(true);
+})();
+</script>
+</body>
+</html>
